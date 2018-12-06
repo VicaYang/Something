@@ -1,11 +1,69 @@
 #include "something.h"
 #include "ui_something.h"
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 
 Something::Something(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Something)
 {
     ui->setupUi(this);
+    this->setWindowTitle("Something");
+    this->createUI();
+    //this->initEngine();
+}
+void Something::createUI()
+{
+    input = new QLineEdit;
+    searchBtn = new QPushButton;
+    table = new QTableWidget;
+    searchBtn->setText("Search");
+    QVBoxLayout *vBoxLayout = new QVBoxLayout;
+    QHBoxLayout *hBoxlayout = new QHBoxLayout;
+    QWidget *widget = new QWidget;
+    QWidget *subwidget = new QWidget;
+    hBoxlayout->addWidget(input);
+    hBoxlayout->addWidget(searchBtn);
+    subwidget->setLayout(hBoxlayout);
+    vBoxLayout->addWidget(subwidget);
+    vBoxLayout->addWidget(table);
+    widget->setLayout(vBoxLayout);
+    setCentralWidget(widget);
+    table->setColumnCount(2);
+    table->setShowGrid(true);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setHorizontalHeaderLabels(QStringList({ QString("Name"), QString("Path") }));
+    table->horizontalHeader()->setStretchLastSection(true);
+    connect(searchBtn, SIGNAL(released()), this, SLOT(search()));
+}
+
+void Something::initEngine() {
+    searchBtn->setEnabled(false);
+    this->statusBar()->showMessage("Building Index......");
+    QVector<char> _drivers = { 'D' };
+    for (auto ch : _drivers) {
+        drivers.push_back(new USNParser(ch));
+    }
+    this->statusBar()->showMessage("Finish");
+    searchBtn->setEnabled(true);
+}
+
+void Something::search() {
+    auto pattern = input->text();
+    std::vector<FileEntry*> res;
+    for (auto& driver : drivers) {
+        auto tmp = driver->query(pattern.toStdWString());
+        std::copy(tmp.begin(), tmp.end(), std::back_inserter(res));
+    }
+    int i = 0;
+    for(auto ptr : res) {
+        table->insertRow(i);
+        table->setItem(i, 0, new QTableWidgetItem(QString::fromStdWString(ptr->file_name)));
+        table->setItem(i, 1, new QTableWidgetItem(QString::fromStdWString(ptr->full_path)));
+        i++;
+    }
+    table->resizeColumnsToContents();
 }
 
 Something::~Something()
