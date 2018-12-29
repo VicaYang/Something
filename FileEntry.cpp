@@ -6,11 +6,7 @@ FileEntry::FileEntry(const PUSN_RECORD usn_record)
 {
     file_ref = usn_record->FileReferenceNumber;
     parent_ref = usn_record->ParentFileReferenceNumber;
-    file_name = std::wstring(usn_record->FileName);
-    if (file_name.find(L"mingw-get-setup") != std::wstring::npos) {
-        auto gg = file_name;
-    }
-    file_name = file_name.substr(0, usn_record->FileNameLength / 2);
+    file_name = std::wstring(usn_record->FileName).substr(0, usn_record->FileNameLength / 2);
     is_folder = (usn_record->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 FileEntry::FileEntry(const char driver_letter) {

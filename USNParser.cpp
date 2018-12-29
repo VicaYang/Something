@@ -12,6 +12,9 @@ USNParser::USNParser(const char dl)
     } else {
         qDebug() << "Only NTFS supported yet";
     }
+    DWORD br;
+    bool isSuccess = DeviceIoControl(root_handle, FSCTL_QUERY_USN_JOURNAL, NULL, 0, &journal, sizeof(journal), &br, NULL);
+    if (!isSuccess) isSuccess = createUsnJournal();
     genEntries();
 }
 
@@ -69,37 +72,47 @@ void USNParser::getRootHandle() {
 }
 
 void USNParser::genEntries() {
-    DWORD br;
-    USN_JOURNAL_DATA data;
-    bool isSuccess = DeviceIoControl(root_handle, FSCTL_QUERY_USN_JOURNAL, NULL, 0, &data, sizeof(data), &br, NULL);
     constexpr int BUFLEN = 1 << 18;
-    if (isSuccess) {
-        all_entries[ROOT_REFERENCE] = new FileEntry(driver_letter);
-        MFT_ENUM_DATA_V0 mftEnumData;
-        mftEnumData.StartFileReferenceNumber = 0;
-        mftEnumData.LowUsn = 0;
-        mftEnumData.HighUsn = data.NextUsn;
-        CHAR buffer[BUFLEN];
-        DWORD usnDataSize;
-        PUSN_RECORD UsnRecord;
-        while (DeviceIoControl(root_handle, FSCTL_ENUM_USN_DATA, &mftEnumData, sizeof(mftEnumData), buffer, BUFLEN, &usnDataSize, NULL))
-        {
-            DWORD dwRetBytes = usnDataSize - sizeof(USN);
-            UsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
-            while (dwRetBytes>0) {
+      all_entries[ROOT_REFERENCE] = new FileEntry(driver_letter);
+      MFT_ENUM_DATA_V0 mftEnumData;
+      mftEnumData.StartFileReferenceNumber = 0;
+      mftEnumData.LowUsn = 0;
+      mftEnumData.HighUsn = journal.NextUsn;
+      CHAR buffer[BUFLEN];
+      DWORD usnDataSize;
+      PUSN_RECORD UsnRecord;
+      while (DeviceIoControl(root_handle, FSCTL_ENUM_USN_DATA, &mftEnumData, sizeof(mftEnumData), buffer, BUFLEN, &usnDataSize, NULL))
+      {
+          DWORD dwRetBytes = usnDataSize - sizeof(USN);
+          UsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
+          while (dwRetBytes>0) {
+              if (UsnRecord->FileName[0] != L'$') {
                 auto ptr = new FileEntry(UsnRecord);
                 all_entries.insert({ UsnRecord->FileReferenceNumber, ptr });
                 all_entries[UsnRecord->FileReferenceNumber] = ptr;
                 if (sub_entries.count(UsnRecord->ParentFileReferenceNumber) == 0)
-                    sub_entries.insert({ UsnRecord->ParentFileReferenceNumber , std::vector<FileEntry*>() });
+                  sub_entries.insert({ UsnRecord->ParentFileReferenceNumber , std::vector<FileEntry*>() });
                 sub_entries[UsnRecord->ParentFileReferenceNumber].push_back(ptr);
-                DWORD recordLen = UsnRecord->RecordLength;
-                dwRetBytes -= recordLen;
-                UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen);
-            }
-            mftEnumData.StartFileReferenceNumber = *(USN *)&buffer;
-        }
-    }
+              }
+              DWORD recordLen = UsnRecord->RecordLength;
+              dwRetBytes -= recordLen;
+              UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen);
+          }
+          mftEnumData.StartFileReferenceNumber = *(USN *)&buffer;
+      }
+}
+void USNParser::recvPUSN(PUSN_RECORD pusn) {
+  if (pusn->Reason & USN_REASON_FILE_CREATE) {
+    auto ptr = new FileEntry(pusn);
+    all_entries.insert_or_assign(pusn->FileReferenceNumber, ptr);
+    all_entries[pusn->FileReferenceNumber] = ptr;
+    if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0)
+      sub_entries.insert({ pusn->ParentFileReferenceNumber , std::vector<FileEntry*>() });
+    sub_entries[pusn->ParentFileReferenceNumber].push_back(ptr);
+  }
+  if (pusn->Reason & USN_REASON_RENAME_NEW_NAME) {
+    all_entries[pusn->FileReferenceNumber]->file_name = std::wstring(pusn->FileName).substr(0, pusn->FileNameLength / 2);
+  }
 }
 
 USNParser::~USNParser()
