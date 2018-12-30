@@ -5,12 +5,18 @@
 #include <vector>
 #include <windows.h>
 #include <stdio.h>
+#include <qprocess.h>
+#include <qstringlist.h>
+#include <qstring.h>
 
 class Reader {
 public:
 	std::wstring read(const std::wstring& path);
+	QProcess *process;
+	Reader(QProcess *mprocess);
+
 private:
-	std::set<std::wstring> plain_text_suffixes = { L"txt", L"html", L"md", L"h", L"c", L"cpp", L"hpp", L"java" };
+	std::set<std::wstring> plain_text_suffixes = { L"txt", L"md", L"h", L"c", L"cpp", L"hpp", L"java" };
 	std::set<std::wstring> doc_suffixes = { L"doc", L"docx" };
 	std::set<std::wstring> xls_suffixes = { L"xls", L"xlsx" };
 	std::set<std::wstring> ppt_suffixes = { L"ppt", L"pptx" };
