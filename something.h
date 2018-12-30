@@ -23,6 +23,7 @@ public:
     explicit Something(QWidget *parent = 0);
     ~Something();
     void initEngine();
+    void initIndex();
 protected:
   void closeEvent(QCloseEvent *e);
 public slots:
@@ -35,6 +36,8 @@ private:
     QTableWidget* table;
     QVector<USNParser*> drivers;
     QVector<Monitor*> monitors;
+    QProcess *process;
+	FileIndex *fileindex;
     void createUI();
     
 };
