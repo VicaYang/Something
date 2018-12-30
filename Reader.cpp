@@ -1,4 +1,9 @@
 #include "Reader.h"
+#include <QDebug>
+
+Reader::Reader(QProcess *mprocess) {
+	process = mprocess;
+}
 
 std::wstring Reader::read(const std::wstring& path) {
 	std::wstring format = identifyFormat(path);
@@ -50,59 +55,47 @@ std::wstring Reader::readFromPlainText(const std::wstring& path) {
 
 std::wstring Reader::readFromDoc(const std::wstring& path) {
 	std::wstring cmd = L"doctotext\\doctotext\\doctotext.exe ";
-	cmd = cmd + path + L">temp.txt";
-	_wsystem(cmd.c_str());
-	int len, n;
-	wchar_t temp[500] = { 0, };
-	std::wstring result = L"";
-	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
-	while (!feof(fp)) {
-		len = fread(temp, 1, sizeof(temp), fp);
-		temp[len/2 - 1] = 0;
-		result = result + temp;
-	}
-	fclose(fp);
+	cmd = cmd + path;
+	QString qcmd = QString::fromStdWString(cmd);
+	process->start(qcmd);
+	process->waitForFinished();
+	QString output(process->readAllStandardOutput());
+	process->close();
+	std::wstring result = output.toStdWString();
 	return result;
 }
 
 std::wstring Reader::readFromPPt(const std::wstring& path) {
 	std::wstring cmd = L"doctotext\\doctotext\\doctotext.exe ";
-	cmd = cmd + path + L">temp.txt";
-	_wsystem(cmd.c_str());
-	int len, n;
-	wchar_t temp[500] = { 0, };
-	std::wstring result = L"";
-	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
-	while (!feof(fp)) {
-		len = fread(temp, 1, sizeof(temp), fp);
-		temp[len / 2 - 1] = 0;
-		result = result + temp;
-	}
-	fclose(fp);
+	cmd = cmd + path;
+	QString qcmd = QString::fromStdWString(cmd);
+	process->start(qcmd);
+	process->waitForFinished();
+	QString output(process->readAllStandardOutput());
+	process->close();
+	std::wstring result = output.toStdWString();
 	return result;
 }
 
 std::wstring Reader::readFromXls(const std::wstring& path) {
 	std::wstring cmd = L"doctotext\\doctotext\\doctotext.exe ";
-	cmd = cmd + path + L">temp.txt";
-	_wsystem(cmd.c_str());
-	int len, n;
-	wchar_t temp[500] = { 0, };
-	std::wstring result = L"";
-	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
-	while (!feof(fp)) {
-		len = fread(temp, 1, sizeof(temp), fp);
-		temp[len / 2 - 1] = 0;
-		result = result + temp;
-	}
-	fclose(fp);
+	cmd = cmd + path;
+	QString qcmd = QString::fromStdWString(cmd);
+	process->start(qcmd);
+	process->waitForFinished();
+	QString output(process->readAllStandardOutput());
+	process->close();
+	std::wstring result = output.toStdWString();
 	return result;
 }
 
 std::wstring Reader::readFromPdf(const std::wstring& path) {
-	std::wstring cmd = L"xpdf\\bin64\\pdftotext ";
+	std::wstring cmd = L"xpdf\\bin64\\pdftotext.exe ";
 	cmd = cmd + path + L" temp.txt";
-	_wsystem(cmd.c_str());
+	QString qcmd = QString::fromStdWString(cmd);
+	process->start(qcmd);
+	process->waitForFinished();
+	process->close();
 	int len, n;
 	wchar_t temp[500] = { 0, };
 	std::wstring result = L"";
@@ -113,22 +106,18 @@ std::wstring Reader::readFromPdf(const std::wstring& path) {
 		result = result + temp;
 	}
 	fclose(fp);
+	process->close();
 	return result;
 }
 
 std::wstring Reader::readFromHtml(const std::wstring& path) {
-	std::wstring cmd = L"doctotext\\doctotext\\doctotext.exe ";
-	cmd = cmd + path + L">temp.txt";
-	_wsystem(cmd.c_str());
-	int len, n;
-	wchar_t temp[500] = { 0, };
-	std::wstring result = L"";
-	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
-	while (!feof(fp)) {
-		len = fread(temp, 1, sizeof(temp), fp);
-		temp[len / 2 - 1] = 0;
-		result = result + temp;
-	}
-	fclose(fp);
+	std::wstring cmd = L"doctotext\\doctotext.exe ";
+	cmd = cmd + path;
+	QString qcmd = QString::fromStdWString(cmd);
+	process->start(qcmd);
+	process->waitForFinished();
+	QString output(process->readAllStandardOutput());
+	process->close();
+	std::wstring result = output.toStdWString();
 	return result;
 }
