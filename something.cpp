@@ -12,6 +12,7 @@ Something::Something(QWidget *parent) :
     this->setWindowTitle("Something");
     this->createUI();
     //this->initEngine();
+    initIndex();
 }
 void Something::createUI()
 {
@@ -86,4 +87,9 @@ void Something::closeEvent(QCloseEvent* e) {
       ptr->wait();
     }
     e->accept();
+}
+
+void Something::initIndex() {
+	process = new QProcess(this);
+	fileindex = new FileIndex(process);
 }
