@@ -37,7 +37,7 @@ private:
     QVector<USNParser*> drivers;
     QVector<Monitor*> monitors;
     QProcess *process;
-	FileIndex *fileindex;
+    FileIndex *fileindex;
     void createUI();
     
 };
