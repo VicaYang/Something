@@ -20,12 +20,12 @@ char * wchar2char(const wchar_t* wchar)
 }
 
 
-FileInfo::FileInfo(int num, const std::wstring& path) {
+FileInfo::FileInfo(int num, const std::wstring& path, QProcess *process) {
 	NLPIR_Init();
 	FileNum = num;
-	FileName = path;
+	FileName = identifyName(path);
 	FilePath = path;
-	Reader reader;
+	Reader reader(process);
 	FileContent= reader.read(path);
 	std::string temp = wchar2char(FileContent.c_str());
 	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 0);
@@ -57,24 +57,26 @@ std::wstring FileInfo::identifyName(const std::wstring& path) {
 	return L"";
 }
 
-FileIndex::FileIndex() {
+
+FileIndex::FileIndex(QProcess *mprocess) {
+	process = mprocess;
 	FileNum = 0;
 }
 
 void FileIndex::InsertFile(const std::wstring& path){
-	FileInfo NewFile = FileInfo(FileNum++, path);
+	FileInfo NewFile = FileInfo(FileNum++, path, process);
 	Files.push_back(NewFile);
 	bool check = false;
+	std::list<post>::iterator iter;
 	for (int i = 0; i < NewFile.words.size(); i++) {
 		std::wstring word = NewFile.words[i];
-		for (int j = 0; j < DB[word].size(); j++) {
-			if (DB[word][j].FileNum == NewFile.FileNum) {
-				DB[word][j].FreqNum++;
+		for (iter = DB[word].begin(); iter != DB[word].end(); ++iter) {
+			if (iter->FileNum == NewFile.FileNum) {
+				iter->FreqNum++;
 				check = true;
 				break;
 			}
 		}
-
 		if (check == false) {
 			post tempPost;
 			tempPost.FileNum = NewFile.FileNum;
@@ -83,6 +85,25 @@ void FileIndex::InsertFile(const std::wstring& path){
 		}
 		check = false;
 	}
+}
+
+void FileIndex::DeleteFile(const std::wstring& path) {
+	std::list<FileInfo>::iterator iter;
+	std::list<post>::iterator iter2;
+	for (iter = Files.begin(); iter != Files.end(); iter++) {
+		if (iter->FilePath == path) {
+			break;
+		}
+	}
+	for (int i = 0; i < iter->words.size(); i++) {
+		for (iter2 = DB[iter->words[i]].begin(); iter2 != DB[iter->words[i]].end(); iter++) {
+			if (iter2->FileNum == iter->FileNum) {
+				DB[iter->words[i]].erase(iter2);
+				break;
+			}
+		}
+	}
+	Files.erase(iter);
 }
 
 bool postcompare(post a, post b) {
@@ -99,6 +120,8 @@ std::vector<FileInfo> FileIndex::SearchFile(const std::wstring &sentence) {
 	int start_pos;
 	bool valid = false;
 	std::vector<post> posts;
+	std::list<post>::iterator iter;
+	std::list<FileInfo>::iterator iter2;
 	for (int i = 0; i < result.length(); i++) {
 		if (result[i] < 33) {
 			if (valid == true) {
@@ -115,16 +138,16 @@ std::vector<FileInfo> FileIndex::SearchFile(const std::wstring &sentence) {
 	}
 	bool check = false;
 	for (int i = 0; i < words.size(); i++) {
-		for (int j = 0; j < DB[words[i]].size(); j++) {
+		for (iter = DB[words[i]].begin(); iter != DB[words[i]].end(); ++iter) {
 			for (int k = 0; k < posts.size(); k++) {
-				if (DB[words[i]][j].FileNum == posts[k].FileNum) {
-					posts[k].FreqNum += DB[words[i]][j].FreqNum;
+				if (iter->FileNum == posts[k].FileNum) {
+					posts[k].FreqNum += iter->FreqNum;
 					check = true;
 					break;
 				}
 			}
 			if (check == false) {
-				posts.push_back(DB[words[i]][j]);
+				posts.push_back(*iter);
 			}
 			check = false;
 		}
@@ -132,7 +155,12 @@ std::vector<FileInfo> FileIndex::SearchFile(const std::wstring &sentence) {
 	sort(posts.begin(), posts.end(), postcompare);
 	std::vector<FileInfo> Result;
 	for (int i = 0; i < posts.size(); i++) {
-		Result.push_back(Files[posts[i].FileNum]);
+		for (iter2 = Files.begin(); iter2 != Files.end(); iter2++) {
+			if (iter2->FileNum == posts[i].FileNum) {
+				Result.push_back(*iter2);
+				break;
+			}
+		}
 	}
 	return Result;
 }
