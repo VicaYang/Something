@@ -96,7 +96,7 @@ void FileIndex::DeleteFile(const std::wstring& path) {
 		}
 	}
 	for (int i = 0; i < iter->words.size(); i++) {
-		for (iter2 = DB[iter->words[i]].begin(); iter2 != DB[iter->words[i]].end(); iter++) {
+		for (iter2 = DB[iter->words[i]].begin(); iter2 != DB[iter->words[i]].end(); iter2++) {
 			if (iter2->FileNum == iter->FileNum) {
 				DB[iter->words[i]].erase(iter2);
 				break;
