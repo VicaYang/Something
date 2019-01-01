@@ -1,6 +1,4 @@
 #include "FileIndex.h"
-#include "Reader.h"
-#pragma warning (disable: 4267)
 
 wchar_t * char2wchar(const char* cchar) {
 	wchar_t *m_wchar;
@@ -22,14 +20,15 @@ char * wchar2char(const wchar_t* wchar) {
 
 
 FileInfo::FileInfo(FILEREF num, const std::wstring& path, QProcess *process) {
-	NLPIR_Init();
+	const std::string DataPath = "..\\";
+	NLPIR_Init(DataPath.c_str(), 0, "");
 	FileNum = num;
 	FileName = identifyName(path);
 	FilePath = path;
 	Reader reader(process);
-	FileContent= reader.read(path);
-	std::string temp = wchar2char(FileContent.c_str());
-	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 0);
+	FileContent = reader.read(path);
+	std::string temp = "hello hello";
+	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 1);
 	std::wstring result = char2wchar(LexResult.c_str());
 	NLPIR_Exit();
 	int start_pos;
@@ -59,18 +58,18 @@ std::wstring FileInfo::identifyName(const std::wstring& path) {
 }
 
 
-FileIndex::FileIndex(USNParser* driver) : driver(driver){ process = new QProcess(); }
+FileIndex::FileIndex(USNParser* driver, QProcess* mprocess) : driver(driver) { process = mprocess; }
 
 void FileIndex::InsertFiles(const std::wstring& dir) {
-  auto ref_num = driver->getFileRef(dir);
-  std::set<FileEntry*> files;
-  driver->recursiveAdd(ref_num, files);
-  for (auto file : files) {
-    if (Reader::isValid(file->file_name)) {
-      file->genPath(driver->all_entries);
-      InsertFile(file->file_ref, file->full_path);
-    }
-  }
+	auto ref_num = driver->getFileRef(dir);
+	std::set<FileEntry*> files;
+	driver->recursiveAdd(ref_num, files);
+	for (auto file : files) {
+		if (Reader::isValid(file->file_name)) {
+			file->genPath(driver->all_entries);
+			InsertFile(file->file_ref, file->full_path);
+		}
+	}
 }
 
 void FileIndex::InsertFile(FILEREF num, const std::wstring& path) {
