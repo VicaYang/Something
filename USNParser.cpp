@@ -1,4 +1,5 @@
 #include "USNParser.h"
+#include "util.h"
 #include <QDebug>
 
 USNParser::USNParser(const char dl) {
@@ -18,11 +19,18 @@ USNParser::USNParser(const char dl) {
   genEntries();
 }
 
-std::vector<FileEntry*> USNParser::query(const std::wstring& pattern) {
-  std::vector<FileEntry*> res;
+std::set<FileEntry*> USNParser::query(const std::wstring& pattern) {
+  if (pattern.find(L"\\") == std::wstring::npos) {
+    return querySimple(pattern);
+  } else {
+    return queryComplex(pattern);
+  }
+}
+std::set<FileEntry*> USNParser::querySimple(const std::wstring& pattern) {
+  std::set<FileEntry*> res;
   for (auto& kvp : all_entries) {
     if (kvp.second->file_name.find(pattern) != std::wstring::npos) {
-      res.push_back(kvp.second);
+      res.insert(kvp.second);
       if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
         recursiveAdd(kvp.second->file_ref, res);
       }
@@ -32,16 +40,44 @@ std::vector<FileEntry*> USNParser::query(const std::wstring& pattern) {
   return res;
 }
 
-void USNParser::recursiveAdd(FILEREF folder, std::vector<FileEntry*>& res) {
+std::set<FileEntry*> USNParser::queryComplex(const std::wstring& pattern) {
+  auto splited = pattern.substr(pattern.find_last_of(L"\\"));
+  std::set<FileEntry*> res;
+  for (auto& kvp : all_entries) {
+    if (kvp.second->file_name.find(splited) != std::wstring::npos) {
+      kvp.second->genPath(all_entries);
+      if (kvp.second->full_path.find(pattern) != std::wstring::npos) {
+        res.insert(kvp.second);
+        if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
+          recursiveAdd(kvp.second->file_ref, res);
+        }
+      }
+    }
+  }
+  for (auto ptr : res) ptr->genPath(all_entries);
+  return res;
+}
+
+void USNParser::recursiveAdd(FILEREF folder, std::set<FileEntry*>& res) {
   auto& childs = sub_entries[folder];
   for (auto child : childs) {
-    res.push_back(child);
+    res.insert(child);
     if (child->is_folder && sub_entries.count(child->file_ref)) {
       recursiveAdd(child->file_ref, res);
     }
   }
 }
 
+FILEREF USNParser::getFileRef(const std::wstring& path) {
+  auto pattern = path.substr(path.find_last_of(L'\\'));
+  for (auto& kvp : all_entries) {
+    if (kvp.second->file_name.find(pattern) != std::wstring::npos) {
+      kvp.second->genPath(all_entries);
+      if (kvp.second->full_path == path) return kvp.second->file_ref;
+    }
+  }
+  return 0;
+}
 
 bool USNParser::createUsnJournal() {
   CREATE_USN_JOURNAL_DATA cujd;

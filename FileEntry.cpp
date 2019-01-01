@@ -24,5 +24,12 @@ void FileEntry::genPath(std::map<FILEREF, FileEntry*>& table) {
     full_path = table[parent_ref]->full_path + L"\\" + file_name;
 }
 
+bool FileEntry::operator<(const FileEntry& rhs) {
+  return file_ref < rhs.file_ref || (file_ref == rhs.file_ref && file_name < rhs.file_name);
+}
+bool FileEntry::operator=(const FileEntry& rhs) {
+  return file_ref == rhs.file_ref && file_name == rhs.file_name;
+}
+
 FileEntry::~FileEntry() {
 }

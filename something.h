@@ -2,15 +2,17 @@
 #define SOMETHING_H
 
 #include <QMainWindow>
-#include <QTableWidget>
+#include <QTableView>
+#include <QStandardItemModel>
 #include <QPushButton>
 #include <QLineEdit>
-#include <QVector>
 #include "USNParser.h"
 #include "Monitor.h"
 #include "FileIndex.h"
 #include <windows.h>
 #include <QCloseEvent>
+#include "Searcher.h"
+#include "HTMLDelegate.h"
 
 namespace Ui {
 class Something;
@@ -24,23 +26,28 @@ public:
   explicit Something(QWidget *parent = 0);
   ~Something();
   void initEngine();
-  void initIndex();
 protected:
   void closeEvent(QCloseEvent *e);
-public slots:
+private slots:
   void search();
   void recvPUSN(int id, PUSN_RECORD pusn);
+  void buildIndexSlot();
 private:
   Ui::Something *ui;
   QLineEdit* input;
   QPushButton* searchBtn;
-  QTableWidget* table;
-  QVector<USNParser*> drivers;
-  QVector<Monitor*> monitors;
-  QProcess *process;
-  FileIndex *fileindex;
+  QTableView* table;
+  QStandardItemModel* model;
+  HTMLDelegate* delegate;
+  std::vector<char> _drivers = { 'D' };
+  std::vector<USNParser*> drivers;
+  std::vector<Monitor*> monitors;
+  std::vector<FileIndex*> fileindexs;
+  Searcher* searcher;
+  QMenu* menu;
+  QAction* buildIndex;
   void createUI();
+
 };
 Q_DECLARE_METATYPE(PUSN_RECORD);
-
 #endif // SOMETHING_H

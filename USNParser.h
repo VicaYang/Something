@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <set>
 #include "FileEntry.h"
 
 class USNParser
@@ -14,9 +15,13 @@ public:
   void genEntries();
   void getRootHandle();
 
-  std::vector<FileEntry*> query(const std::wstring& pattern);
-  void recursiveAdd(FILEREF folder, std::vector<FileEntry*>& res);
+  std::set<FileEntry*> query(const std::wstring& pattern);
+  std::set<FileEntry*> querySimple(const std::wstring& pattern);
+  std::set<FileEntry*> queryComplex(const std::wstring& pattern);
+  void recursiveAdd(FILEREF folder, std::set<FileEntry*>& res);
   void recvPUSN(PUSN_RECORD pusn);
+  FILEREF getFileRef(const std::wstring& path);
+
   char driver_letter;
   HANDLE root_handle;
   USN_JOURNAL_DATA journal;

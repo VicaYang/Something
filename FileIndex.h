@@ -11,33 +11,35 @@
 #include "Reader.h"
 #include "NLPIR.h"
 #include <qprocess.h>
+#include <FileEntry.h>
+#include "USNParser.h"
 
 class FileInfo {
 public:
-	int FileNum;
+  FILEREF FileNum;
 	std::wstring FileName;
 	std::wstring FilePath;
 	std::wstring FileContent;
-	FileInfo(int num, const std::wstring& path, QProcess *process);
+	FileInfo(FILEREF num, const std::wstring& path, QProcess *process);
 	std::wstring identifyName(const std::wstring& path);
 	std::vector<std::wstring> words;
 };
 
 class post {
 public:
-	int FileNum;
+  FILEREF FileNum;
 	int FreqNum;
 };
 
 class FileIndex {
 public:
-	int FileNum;
 	std::list<FileInfo> Files;
 	std::unordered_map<std::wstring, std::list<post>> DB;
 	QProcess *process;
-	FileIndex(QProcess *mprocess);
+	FileIndex(USNParser* driver);
   void InsertFiles(const std::wstring& dir);
-	void InsertFile(const std::wstring& path);
+	void InsertFile(FILEREF num, const std::wstring& path);
 	void DeleteFile(const std::wstring& path);
-	std::vector<FileInfo> SearchFile(const std::wstring& sentence);
+	std::set<FileEntry*> SearchFile(const std::wstring& sentence);
+  USNParser* driver;
 };

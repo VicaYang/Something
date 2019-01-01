@@ -1,4 +1,5 @@
 #include "Monitor.h"
+#include <QDebug>
 
 Monitor::Monitor(int id, HANDLE root_handle, USN_JOURNAL_DATA journal) : id(id), root_handle(root_handle), journal(journal) {
   last_usn = journal.NextUsn;
@@ -18,6 +19,10 @@ void Monitor::run() {
           buffer, BUFLEN,
           &br, nullptr);
         auto PUsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
+        qDebug() << "-----------------\n";
+        qDebug() << "Filename " << PUsnRecord->FileName <<"\n";
+        qDebug() << "Reason " << PUsnRecord->Reason << "\n";
+        qDebug() << "FileRef " << PUsnRecord->FileReferenceNumber << "\n";;
         if (PUsnRecord->FileName[0] != L'$') {
           emit sendPUSN(id, PUsnRecord);
         }

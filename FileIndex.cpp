@@ -1,4 +1,6 @@
 #include "FileIndex.h"
+#include "Reader.h"
+#pragma warning (disable: 4267)
 
 wchar_t * char2wchar(const char* cchar) {
 	wchar_t *m_wchar;
@@ -19,7 +21,7 @@ char * wchar2char(const wchar_t* wchar) {
 }
 
 
-FileInfo::FileInfo(int num, const std::wstring& path, QProcess *process) {
+FileInfo::FileInfo(FILEREF num, const std::wstring& path, QProcess *process) {
 	NLPIR_Init();
 	FileNum = num;
 	FileName = identifyName(path);
@@ -57,17 +59,22 @@ std::wstring FileInfo::identifyName(const std::wstring& path) {
 }
 
 
-FileIndex::FileIndex(QProcess *mprocess) {
-	process = mprocess;
-	FileNum = 0;
-}
+FileIndex::FileIndex(USNParser* driver) : driver(driver){ process = new QProcess(); }
 
 void FileIndex::InsertFiles(const std::wstring& dir) {
-  
+  auto ref_num = driver->getFileRef(dir);
+  std::set<FileEntry*> files;
+  driver->recursiveAdd(ref_num, files);
+  for (auto file : files) {
+    if (Reader::isValid(file->file_name)) {
+      file->genPath(driver->all_entries);
+      InsertFile(file->file_ref, file->full_path);
+    }
+  }
 }
 
-void FileIndex::InsertFile(const std::wstring& path) {
-	FileInfo NewFile = FileInfo(FileNum++, path, process);
+void FileIndex::InsertFile(FILEREF num, const std::wstring& path) {
+	FileInfo NewFile = FileInfo(num, path, process);
 	Files.push_back(NewFile);
 	bool check = false;
 	std::list<post>::iterator iter;
@@ -113,7 +120,7 @@ bool postcompare(post a, post b) {
 	return a.FreqNum > b.FreqNum;
 }
 
-std::vector<FileInfo> FileIndex::SearchFile(const std::wstring &sentence) {
+std::set<FileEntry*> FileIndex::SearchFile(const std::wstring &sentence) {
 	NLPIR_Init();
 	std::string temp = wchar2char(sentence.c_str());
 	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 0);
@@ -156,11 +163,11 @@ std::vector<FileInfo> FileIndex::SearchFile(const std::wstring &sentence) {
 		}
 	}
 	sort(posts.begin(), posts.end(), postcompare);
-	std::vector<FileInfo> Result;
+	std::set<FileEntry*> Result;
 	for (int i = 0; i < posts.size(); i++) {
 		for (iter2 = Files.begin(); iter2 != Files.end(); iter2++) {
 			if (iter2->FileNum == posts[i].FileNum) {
-				Result.push_back(*iter2);
+				Result.insert(driver->all_entries[iter2->FileNum]);
 				break;
 			}
 		}

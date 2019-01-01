@@ -1,5 +1,15 @@
 #include "Reader.h"
 #include <QDebug>
+#pragma warning (disable 4267)
+
+std::set<std::wstring> Reader::all{ L"txt", L"md", L"h", L"c", L"cpp", L"hpp", L"java",
+L"doc", L"docx", L"xls", L"xlsx", L"ppt", L"pptx", L"pdf", L"html" };
+std::set<std::wstring> Reader::plain_text_suffixes{ L"txt", L"md", L"h" L"c", L"cpp", L"hpp", L"java" };
+std::set<std::wstring> Reader::doc_suffixes{ L"doc", L"docx" };
+std::set<std::wstring> Reader::xls_suffixes{ L"xls", L"xlsx" };
+std::set<std::wstring> Reader::ppt_suffixes{ L"ppt", L"pptx" };
+std::set<std::wstring> Reader::pdf_suffixes{ L"pdf" };
+std::set<std::wstring> Reader::html_suffixes{ L"html" };
 
 Reader::Reader(QProcess *mprocess) {
 	process = mprocess;
@@ -39,8 +49,13 @@ std::wstring Reader::identifyFormat(const std::wstring& path) {
 	return L"";
 }
 
+bool Reader::isValid(const std::wstring& path) {
+  auto format = identifyFormat(path);
+  return all.count(format) == 1;
+}
+
 std::wstring Reader::readFromPlainText(const std::wstring& path) {
-	int len, n;
+	int len;
 	wchar_t temp[500] = {0,};
 	std::wstring result = L"";
 	FILE *fp = _wfopen(path.c_str(), L"r+,ccs=UTF-8");
@@ -96,7 +111,7 @@ std::wstring Reader::readFromPdf(const std::wstring& path) {
 	process->start(qcmd);
 	process->waitForFinished();
 	process->close();
-	int len, n;
+	int len;
 	wchar_t temp[500] = { 0, };
 	std::wstring result = L"";
 	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
