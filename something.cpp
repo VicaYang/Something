@@ -52,6 +52,7 @@ void Something::createUI() {
 void Something::initEngine() {
   searchBtn->setEnabled(false);
   this->statusBar()->showMessage("Building Index......");
+  process = new QProcess(this);
   int id = 0;
   for (auto ch : _drivers) {
     drivers.push_back(new USNParser(ch));
@@ -97,10 +98,20 @@ void Something::closeEvent(QCloseEvent* e) {
 }
 
 void Something::buildIndexSlot() {
-  QString path = QFileDialog::getOpenFileName(this, tr("Choose files"), ".", tr("All (*.*)"));
-  int id = 0;
-  for (id = 0; id < _drivers.size(); ++id) {
-    if (path[0] == _drivers[id]) break;
-  }
-  fileindexs[id]->InsertFiles(path.toStdWString());
+	QString path = QFileDialog::getExistingDirectory(this, tr("Choose folders"), ".");
+	if (path == "") {
+		return;
+	}
+	int id = 0;
+	for (id = 0; id < _drivers.size(); ++id) {
+		if (path[0] == _drivers[id]) break;
+	}
+	std::wstring temp = path.toStdWString();
+	while (1) {
+		int pos = temp.find(47);
+		if (pos == -1)
+			break;
+		temp = temp.replace(pos, 1, L"\\");
+	}
+	fileindexs[id]->InsertFiles(temp);
 }
