@@ -1,6 +1,6 @@
 #include "FileIndex.h"
 
-wchar_t * char2wchar(const char* cchar){
+wchar_t * char2wchar(const char* cchar) {
 	wchar_t *m_wchar;
 	int len = MultiByteToWideChar(CP_ACP, 0, cchar, strlen(cchar), NULL, 0);
 	m_wchar = new wchar_t[len + 1];
@@ -9,8 +9,7 @@ wchar_t * char2wchar(const char* cchar){
 	return m_wchar;
 }
 
-char * wchar2char(const wchar_t* wchar)
-{
+char * wchar2char(const wchar_t* wchar) {
 	char * m_char;
 	int len = WideCharToMultiByte(CP_ACP, 0, wchar, wcslen(wchar), NULL, 0, NULL, NULL);
 	m_char = new char[len + 1];
@@ -63,7 +62,11 @@ FileIndex::FileIndex(QProcess *mprocess) {
 	FileNum = 0;
 }
 
-void FileIndex::InsertFile(const std::wstring& path){
+void FileIndex::InsertFiles(const std::wstring& dir) {
+  
+}
+
+void FileIndex::InsertFile(const std::wstring& path) {
 	FileInfo NewFile = FileInfo(FileNum++, path, process);
 	Files.push_back(NewFile);
 	bool check = false;

@@ -39,6 +39,7 @@ std::unique_ptr<READ_USN_JOURNAL_DATA> Monitor::getNext(USN start_usn, int byte_
   query->MaxMajorVersion = 2;
   return query;
 }
+
 bool Monitor::waitNext(PREAD_USN_JOURNAL_DATA data) const {
   DWORD br;
   bool ok = true;

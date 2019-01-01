@@ -9,7 +9,7 @@
 #include <vector>
 #include <list>
 #include "Reader.h"
-#include"NLPIR.h"
+#include "NLPIR.h"
 #include <qprocess.h>
 
 class FileInfo {
@@ -36,6 +36,7 @@ public:
 	std::unordered_map<std::wstring, std::list<post>> DB;
 	QProcess *process;
 	FileIndex(QProcess *mprocess);
+  void InsertFiles(const std::wstring& dir);
 	void InsertFile(const std::wstring& path);
 	void DeleteFile(const std::wstring& path);
 	std::vector<FileInfo> SearchFile(const std::wstring& sentence);

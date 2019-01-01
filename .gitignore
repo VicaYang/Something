@@ -1,3 +1,6 @@
+xpdf/*
+doctotext/*
+
 # REMOVE ALL VS FILE
 *.vcxproj
 *.vcxproj.filters

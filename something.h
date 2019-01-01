@@ -8,6 +8,7 @@
 #include <QVector>
 #include "USNParser.h"
 #include "Monitor.h"
+#include "FileIndex.h"
 #include <windows.h>
 #include <QCloseEvent>
 
@@ -17,29 +18,28 @@ class Something;
 
 class Something : public QMainWindow
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit Something(QWidget *parent = 0);
-    ~Something();
-    void initEngine();
-    void initIndex();
+  explicit Something(QWidget *parent = 0);
+  ~Something();
+  void initEngine();
+  void initIndex();
 protected:
   void closeEvent(QCloseEvent *e);
 public slots:
-    void search();
-    void recvPUSN(int id, PUSN_RECORD pusn);
+  void search();
+  void recvPUSN(int id, PUSN_RECORD pusn);
 private:
-    Ui::Something *ui;
-    QLineEdit* input;
-    QPushButton* searchBtn;
-    QTableWidget* table;
-    QVector<USNParser*> drivers;
-    QVector<Monitor*> monitors;
-    QProcess *process;
-    FileIndex *fileindex;
-    void createUI();
-    
+  Ui::Something *ui;
+  QLineEdit* input;
+  QPushButton* searchBtn;
+  QTableWidget* table;
+  QVector<USNParser*> drivers;
+  QVector<Monitor*> monitors;
+  QProcess *process;
+  FileIndex *fileindex;
+  void createUI();
 };
 Q_DECLARE_METATYPE(PUSN_RECORD);
 

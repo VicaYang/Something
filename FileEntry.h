@@ -6,8 +6,7 @@
 #define ROOT_REFERENCE 0x5000000000005
 typedef unsigned long long FILEREF;
 
-class FileEntry
-{
+class FileEntry {
 public:
     FileEntry(const PUSN_RECORD usnRecord);
     FileEntry(const char driver_letter);
