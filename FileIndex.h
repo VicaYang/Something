@@ -16,7 +16,7 @@
 
 class FileInfo {
 public:
-  FILEREF FileNum;
+	FILEREF FileNum;
 	std::wstring FileName;
 	std::wstring FilePath;
 	std::wstring FileContent;
@@ -27,7 +27,7 @@ public:
 
 class post {
 public:
-  FILEREF FileNum;
+	FILEREF FileNum;
 	int FreqNum;
 };
 
@@ -36,10 +36,10 @@ public:
 	std::list<FileInfo> Files;
 	std::unordered_map<std::wstring, std::list<post>> DB;
 	QProcess *process;
-	FileIndex(USNParser* driver);
-  void InsertFiles(const std::wstring& dir);
+	FileIndex(USNParser* driver, QProcess* mprocess);
+	void InsertFiles(const std::wstring& dir);
 	void InsertFile(FILEREF num, const std::wstring& path);
 	void DeleteFile(const std::wstring& path);
 	std::set<FileEntry*> SearchFile(const std::wstring& sentence);
-  USNParser* driver;
+	USNParser* driver;
 };
