@@ -20,15 +20,14 @@ char * wchar2char(const wchar_t* wchar) {
 
 
 FileInfo::FileInfo(FILEREF num, const std::wstring& path, QProcess *process) {
-	const std::string DataPath = "..\\";
-	NLPIR_Init(DataPath.c_str(), 0, "");
+	NLPIR_Init();
 	FileNum = num;
 	FileName = identifyName(path);
 	FilePath = path;
 	Reader reader(process);
 	FileContent = reader.read(path);
-	std::string temp = "hello hello";
-	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 1);
+	std::string temp = wchar2char(FileContent.c_str());
+	std::string LexResult = NLPIR_ParagraphProcess(temp.c_str(), 0);
 	std::wstring result = char2wchar(LexResult.c_str());
 	NLPIR_Exit();
 	int start_pos;
