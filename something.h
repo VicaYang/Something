@@ -46,6 +46,7 @@ private:
   Searcher* searcher;
   QMenu* menu;
   QAction* buildIndex;
+  QProcess *process;
   void createUI();
 
 };
