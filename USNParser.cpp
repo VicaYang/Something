@@ -69,7 +69,7 @@ void USNParser::recursiveAdd(FILEREF folder, std::set<FileEntry*>& res) {
 }
 
 FILEREF USNParser::getFileRef(const std::wstring& path) {
-  auto pattern = path.substr(path.find_last_of(L'\\'));
+  auto pattern = path.substr(path.find_last_of(L'\\') + 1);
   for (auto& kvp : all_entries) {
     if (kvp.second->file_name.find(pattern) != std::wstring::npos) {
       kvp.second->genPath(all_entries);

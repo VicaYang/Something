@@ -20,7 +20,7 @@ public:
 	std::wstring FileName;
 	std::wstring FilePath;
 	std::wstring FileContent;
-	FileInfo(FILEREF num, const std::wstring& path, QProcess *process);
+	FileInfo(FILEREF num, const std::wstring& path);
 	std::wstring identifyName(const std::wstring& path);
 	std::vector<std::wstring> words;
 };
@@ -35,8 +35,8 @@ class FileIndex {
 public:
 	std::list<FileInfo> Files;
 	std::unordered_map<std::wstring, std::list<post>> DB;
-	QProcess *process;
-	FileIndex(USNParser* driver, QProcess* mprocess);
+	FileIndex(USNParser* driver);
+  ~FileIndex();
 	void InsertFiles(const std::wstring& dir);
 	void InsertFile(FILEREF num, const std::wstring& path);
 	void DeleteFile(const std::wstring& path);

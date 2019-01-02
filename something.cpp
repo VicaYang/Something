@@ -4,6 +4,7 @@
 #include <QMetaType>
 #include <QHBoxLayout>
 #include <QFileDialog>
+#include "BuildIndexThread.h"
 
 Something::Something(QWidget *parent) : QMainWindow(parent), ui(new Ui::Something) {
   ui->setupUi(this);
@@ -13,6 +14,8 @@ Something::Something(QWidget *parent) : QMainWindow(parent), ui(new Ui::Somethin
 }
 
 void Something::createUI() {
+  setFixedHeight(768);
+  setFixedWidth(1024);
   input = new QLineEdit;
   searchBtn = new QPushButton;
   table = new QTableView;
@@ -41,18 +44,24 @@ void Something::createUI() {
   table->setItemDelegate(delegate);
   connect(searchBtn, SIGNAL(released()), this, SLOT(search()));
   qRegisterMetaType<PUSN_RECORD>("Myclass");
-  menu = menuBar()->addMenu("Add");
+  menu = menuBar()->addMenu("Build");
   buildIndex = new QAction(this);
-  buildIndex->setText("Add polygon");
+  buildIndex->setText("Build Index");
   menu->addAction(buildIndex);
   connect(buildIndex, SIGNAL(triggered()), this, SLOT(buildIndexSlot()));
 
+  pProgressBar = new QProgressBar();
+  pLabel = new QLabel();
+  pProgressBar->setRange(0, 100);
+  pProgressBar->setValue(0);
+  pProgressBar->setFixedWidth(0.4 * width());
+  this->statusBar()->addWidget(pLabel);
+  this->statusBar()->addPermanentWidget(pProgressBar);
 }
 
 void Something::initEngine() {
+  pLabel->setText("Building Index......");
   searchBtn->setEnabled(false);
-  this->statusBar()->showMessage("Building Index......");
-  process = new QProcess(this);
   int id = 0;
   for (auto ch : _drivers) {
     drivers.push_back(new USNParser(ch));
@@ -62,26 +71,14 @@ void Something::initEngine() {
     fileindexs.push_back(new FileIndex(drivers.back()));
   }
   searcher = new Searcher(drivers, fileindexs, model);
-  this->statusBar()->showMessage("Finish");
+  pLabel->setText("Finish");
+  pProgressBar->setValue(100);
   searchBtn->setEnabled(true);
 }
 
 void Something::search() {
   auto query = input->text().toStdWString();
   searcher->parseQuery(query);
-  //std::vector<FileEntry*> res;
-  //for (auto& driver : drivers) {
-  //  auto tmp = driver->query(pattern.toStdWString());
-  //  std::copy(tmp.begin(), tmp.end(), std::back_inserter(res));
-  //}
-  //int i = 0;
-  //for(auto ptr : res) {
-  //  table->insertRow(i);
-  //  table->setItem(i, 0, new QTableWidgetItem(QString::fromStdWString(ptr->file_name)));
-  //  table->setItem(i, 1, new QTableWidgetItem(QString::fromStdWString(ptr->full_path)));
-  //  i++;
-  //}
-  //table->resizeColumnsToContents();
 }
 
 void Something::recvPUSN(int id, PUSN_RECORD pusn) {
@@ -93,15 +90,13 @@ Something::~Something() {
 }
 
 void Something::closeEvent(QCloseEvent* e) {
-  for (auto* ptr : monitors) ptr->wait();
+  for (auto* ptr : monitors) ptr->terminate();
   e->accept();
 }
 
 void Something::buildIndexSlot() {
 	QString path = QFileDialog::getExistingDirectory(this, tr("Choose folders"), ".");
-	if (path == "") {
-		return;
-	}
+  if (path.length() == 0) return;
 	int id = 0;
 	for (id = 0; id < _drivers.size(); ++id) {
 		if (path[0] == _drivers[id]) break;
@@ -113,5 +108,14 @@ void Something::buildIndexSlot() {
 			break;
 		temp = temp.replace(pos, 1, L"\\");
 	}
-	fileindexs[id]->InsertFiles(temp);
+  const auto ref_num = drivers[id]->getFileRef(temp);
+  if (ref_num == 0) return;
+  std::set<FileEntry*> files;
+  drivers[id]->recursiveAdd(ref_num, files);
+  auto dataProcessor = new BuildIndexThread(std::move(files), drivers[id], fileindexs[id]);
+  connect(dataProcessor, SIGNAL(setValue(int)), pProgressBar, SLOT(setValue(int)));
+  connect(dataProcessor, SIGNAL(setLabel(QString)), pLabel, SLOT(setText(QString)));
+  connect(dataProcessor, SIGNAL(enableBtn(bool)), searchBtn, SLOT(setEnabled(bool)));
+  connect(dataProcessor, SIGNAL(enableBtn(bool)), buildIndex, SLOT(setEnabled(bool)));
+  dataProcessor->start();
 }

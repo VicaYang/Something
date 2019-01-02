@@ -1,6 +1,7 @@
 xpdf/*
 doctotext/*
-
+Data/*
+temp.txt
 # REMOVE ALL VS FILE
 *.vcxproj
 *.vcxproj.filters

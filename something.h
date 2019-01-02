@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QTableView>
 #include <QStandardItemModel>
+#include <QStatusBar>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QLineEdit>
 #include "USNParser.h"
@@ -11,6 +13,7 @@
 #include "FileIndex.h"
 #include <windows.h>
 #include <QCloseEvent>
+#include <QLabel>
 #include "Searcher.h"
 #include "HTMLDelegate.h"
 
@@ -46,7 +49,8 @@ private:
   Searcher* searcher;
   QMenu* menu;
   QAction* buildIndex;
-  QProcess *process;
+  QLabel* pLabel;
+  QProgressBar* pProgressBar;
   void createUI();
 
 };

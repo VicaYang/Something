@@ -9,10 +9,8 @@ void Searcher::parseQuery(std::wstring& query) {
   if (query.size() < 3) return;
   size_t loc = query.find(L"\\content:");
   if (loc != std::wstring::npos) {
-    auto content = query.substr(loc + 10);
-    if (content.size() > 3) {
-      searchContent(content);
-    }
+    auto content = query.substr(loc + 9);
+    searchContent(content);
   }
   if (loc > 3) {
     auto path = loc == std::wstring::npos ? query : query.substr(0, loc);
@@ -53,7 +51,7 @@ void Searcher::searchContent(std::wstring& content) {
   content_result.clear();
   for (auto index : indexs) {
     auto tmp_res = index->SearchFile(content);
-    std::copy(content_result.begin(), content_result.end(), std::inserter(tmp_res, tmp_res.end()));
+    std::copy(tmp_res.begin(), tmp_res.end(), std::inserter(content_result, content_result.end()));
   }
 }
 
@@ -106,16 +104,14 @@ std::wstring Searcher::addHighLight(std::wstring path) {
     cur = top.first + top.second;
   }
   ss << path.substr(cur);
-  std::wstring ret;
-  ss >> ret;
-  return ret;
+  return ss.str();
 }
 
 void Searcher::display(std::set<FileEntry*>& res) {
   model->removeRows(0, model->rowCount());
   int i = 0;
   for (auto ptr : res) {
-    model->setItem(i, 0, new QStandardItem(QString::fromStdWString(ptr->file_name)));
+    model->setItem(i, 0, new QStandardItem(QString::fromStdWString(addHighLight(ptr->file_name))));
     model->setItem(i, 1, new QStandardItem(QString::fromStdWString(addHighLight(ptr->full_path))));
     i++;
   }
