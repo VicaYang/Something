@@ -38,8 +38,9 @@ public:
 	FileIndex(USNParser* driver);
   ~FileIndex();
 	void InsertFiles(const std::wstring& dir);
-	void InsertFile(FILEREF num, const std::wstring& path);
-	void DeleteFile(const std::wstring& path);
+	void InsertFileIndex(FILEREF num, const std::wstring& path);
+	void DeleteFileIndex(const std::wstring& path);
+  bool exist(FILEREF num);
 	std::set<FileEntry*> SearchFile(const std::wstring& sentence);
 	USNParser* driver;
 };

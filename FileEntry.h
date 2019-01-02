@@ -10,6 +10,8 @@ class FileEntry {
 public:
   FileEntry(const PUSN_RECORD usnRecord);
   FileEntry(const char driver_letter);
+  FileEntry(const FileEntry&) = delete;
+  FileEntry& operator=(const FileEntry&) = delete;
   void genPath(std::map<FILEREF, FileEntry*>& table);
   ~FileEntry();
   FILEREF file_ref;
@@ -18,6 +20,6 @@ public:
   std::wstring full_path;
   bool is_folder;
   bool operator<(const FileEntry& rhs);
-  bool operator=(const FileEntry& rhs);
+  bool operator==(const FileEntry& rhs);
 };
 

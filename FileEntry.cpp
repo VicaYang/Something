@@ -27,7 +27,7 @@ void FileEntry::genPath(std::map<FILEREF, FileEntry*>& table) {
 bool FileEntry::operator<(const FileEntry& rhs) {
   return file_ref < rhs.file_ref || (file_ref == rhs.file_ref && file_name < rhs.file_name);
 }
-bool FileEntry::operator=(const FileEntry& rhs) {
+bool FileEntry::operator==(const FileEntry& rhs) {
   return file_ref == rhs.file_ref && file_name == rhs.file_name;
 }
 

@@ -66,12 +66,13 @@ void FileIndex::InsertFiles(const std::wstring& dir) {
 	for (auto file : files) {
 		if (Reader::isValid(file->file_name)) {
 			file->genPath(driver->all_entries);
-			InsertFile(file->file_ref, file->full_path);
+			InsertFileIndex(file->file_ref, file->full_path);
 		}
 	}
 }
 
-void FileIndex::InsertFile(FILEREF num, const std::wstring& path) {
+void FileIndex::InsertFileIndex(FILEREF num, const std::wstring& path) {
+  if (exist(num)) DeleteFileIndex(path);
 	FileInfo NewFile = FileInfo(num, path);
 	Files.push_back(NewFile);
 	bool check = false;
@@ -95,7 +96,7 @@ void FileIndex::InsertFile(FILEREF num, const std::wstring& path) {
 	}
 }
 
-void FileIndex::DeleteFile(const std::wstring& path) {
+void FileIndex::DeleteFileIndex(const std::wstring& path) {
 	std::list<FileInfo>::iterator iter;
 	std::list<post>::iterator iter2;
 	for (iter = Files.begin(); iter != Files.end(); iter++) {
@@ -116,6 +117,12 @@ void FileIndex::DeleteFile(const std::wstring& path) {
 
 bool postcompare(post a, post b) {
 	return a.FreqNum > b.FreqNum;
+}
+
+bool FileIndex::exist(FILEREF num) {
+  for (auto iter = Files.begin(); iter != Files.end(); ++iter)
+    if (iter->FileNum == num) return true;
+  return false;
 }
 
 std::set<FileEntry*> FileIndex::SearchFile(const std::wstring &sentence) {
