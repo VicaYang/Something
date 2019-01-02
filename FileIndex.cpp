@@ -60,6 +60,11 @@ std::wstring FileInfo::identifyName(const std::wstring& path) {
 FileIndex::FileIndex(USNParser* driver) : driver(driver) {}
 
 void FileIndex::InsertFiles(const std::wstring& dir) {
+	std::list<FileInfo>::iterator itr;
+	for (itr = Files.begin(); itr != Files.end(); itr++) {
+		if (path == itr->FilePath)
+			return;
+	}
 	auto ref_num = driver->getFileRef(dir);
 	std::set<FileEntry*> files;
 	driver->recursiveAdd(ref_num, files);
