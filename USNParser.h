@@ -19,7 +19,6 @@ public:
   std::set<FileEntry*> querySimple(const std::wstring& pattern);
   std::set<FileEntry*> queryComplex(const std::wstring& pattern);
   void recursiveAdd(FILEREF folder, std::set<FileEntry*>& res);
-  void recvPUSN(PUSN_RECORD pusn);
   FILEREF getFileRef(const std::wstring& path);
 
   char driver_letter;
@@ -27,4 +26,5 @@ public:
   USN_JOURNAL_DATA journal;
   std::map<FILEREF, FileEntry*> all_entries;
   std::map<FILEREF, std::vector<FileEntry*>> sub_entries;
+  std::map<FILEREF, FileEntry*> recycle;
 };

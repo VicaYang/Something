@@ -6,19 +6,15 @@
 void Searcher::parseQuery(std::wstring& query) {
   content_result.clear();
   path_result.clear();
-  if (query.size() < 3) return;
+  splited.clear();
   size_t loc = query.find(L"\\content:");
   if (loc != std::wstring::npos) {
-    auto content = query.substr(loc + 9);
-    searchContent(content);
+    _content = query.substr(loc + 9);
+    searchContent(_content);
   }
-  if (loc > 3) {
-    auto path = loc == std::wstring::npos ? query : query.substr(0, loc);
-    if (path.size() > 3) {
-      searchPath(path);
-    }
-  }
-  display();
+  _path = loc == std::wstring::npos ? query : query.substr(0, loc);
+  if (_path.size() > 0)
+    searchPath(_path);
 }
 
 void Searcher::searchPath(std::wstring& path) {
@@ -63,25 +59,9 @@ void Searcher::filter(std::wstring& newpath) {
       ++iter;
     }
   }
-  display();
 }
 
-void Searcher::sort() {
-  display();
-}
-
-void Searcher::display() {
-  std::set<FileEntry*> tmp;
-  if (!content_result.empty() && !path_result.empty()) {
-    std::set_intersection(content_result.begin(), content_result.end(), path_result.begin(), path_result.end(), std::inserter(tmp, tmp.end()));
-    display(tmp);
-  } else {
-    if (!content_result.empty()) display(content_result);
-    else if (!path_result.empty()) display(path_result);
-  }
-}
-
-std::wstring Searcher::addHighLight(std::wstring path) {
+std::wstring Searcher::addHighLight(std::wstring& path) {
   std::wstringstream ss;
   std::wstring res;
   std::priority_queue<std::pair<size_t, size_t>, std::vector<std::pair<size_t, size_t>>, std::greater<std::pair<size_t, size_t>>> PQ;
@@ -107,12 +87,92 @@ std::wstring Searcher::addHighLight(std::wstring path) {
   return ss.str();
 }
 
-void Searcher::display(std::set<FileEntry*>& res) {
-  model->removeRows(0, model->rowCount());
-  int i = 0;
-  for (auto ptr : res) {
-    model->setItem(i, 0, new QStandardItem(QString::fromStdWString(addHighLight(ptr->file_name))));
-    model->setItem(i, 1, new QStandardItem(QString::fromStdWString(addHighLight(ptr->full_path))));
-    i++;
+bool Searcher::singleSearch(std::wstring& path, std::wstring& query_path) {
+  if (query_path.size() == 0) return false;
+  splited = strsplit(query_path);
+  for (auto& word : splited) {
+    if (path.find(word) == std::wstring::npos) return false;
   }
+  return true;
+}
+
+bool Searcher::update(FileEntry* entry, UpdateType type) {
+  if (type == UpdateType::ADD) {
+    content_result.clear();
+    searchContent(_content);
+    if (singleSearch(entry->full_path, _path)) {
+      path_result.insert(entry);
+    }
+    return true;
+  }
+  if (type == UpdateType::REMOVE) {
+    content_result.clear();
+    searchContent(_content);
+    auto iter = path_result.find(entry);
+    if (iter != path_result.end()) {
+      path_result.erase(iter);
+    }
+    return true;
+  }
+  if (type == UpdateType::CONTENT_CHANGE) {
+    content_result.clear();
+    searchContent(_content);
+    return true;
+  }
+  return false;
+}
+
+bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
+  auto& sub_entries = drivers[id]->sub_entries;
+  auto& all_entries = drivers[id]->all_entries;
+  auto& index = indexs[id];
+  auto& recycle = drivers[id]->recycle;
+  if (pusn->Reason == USN_REASON_RENAME_OLD_NAME) { // remove link
+    auto& childs = sub_entries[pusn->ParentFileReferenceNumber];
+    auto iter = childs.begin();
+    for (; iter != childs.end(); ++iter) {
+      if ((*iter)->file_ref == pusn->FileReferenceNumber) break;
+    }
+    auto ptr = *iter;
+    ptr->genPath(all_entries);
+    recycle[pusn->FileReferenceNumber] = ptr;
+    if (index->exist(pusn->FileReferenceNumber)) index->DeleteFileIndex(ptr->full_path);
+    childs.erase(iter);
+    auto iter2 = all_entries.find(pusn->FileReferenceNumber);
+    all_entries.erase(iter2);
+    return update(ptr, UpdateType::REMOVE);
+  }
+  if (pusn->Reason == USN_REASON_RENAME_NEW_NAME) { // add link
+    auto file_entry = recycle[pusn->FileReferenceNumber];
+    file_entry->parent_ref = pusn->ParentFileReferenceNumber;
+    file_entry->file_name = std::wstring(pusn->FileName).substr(0, pusn->FileNameLength / 2);
+    file_entry->full_path.clear();
+    all_entries.insert({ pusn->FileReferenceNumber, file_entry });
+    if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0)
+      sub_entries.insert({ pusn->ParentFileReferenceNumber , std::vector<FileEntry*>() });
+    sub_entries[pusn->ParentFileReferenceNumber].push_back(file_entry);
+    file_entry->genPath(all_entries);
+    auto iter = recycle.find(pusn->FileReferenceNumber);
+    recycle.erase(iter);
+    if (Reader::isValid(file_entry->full_path)) index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
+    return update(file_entry, UpdateType::ADD);
+  }
+  if (pusn->Reason == USN_REASON_FILE_CREATE) {
+    auto ptr = new FileEntry(pusn);
+    all_entries.insert({ pusn->FileReferenceNumber, ptr });
+    if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0)
+      sub_entries.insert({ pusn->ParentFileReferenceNumber , std::vector<FileEntry*>() });
+    sub_entries[pusn->ParentFileReferenceNumber].push_back(ptr);
+    ptr->genPath(all_entries);
+    if (Reader::isValid(ptr->full_path)) index->InsertFileIndex(ptr->file_ref, ptr->full_path);
+    return update(ptr, UpdateType::ADD);
+  }
+  if (pusn->Reason & (0xff | USN_REASON_OBJECT_ID_CHANGE)) {
+    auto file_entry = all_entries[pusn->FileReferenceNumber];
+    file_entry->genPath(drivers[id]->all_entries);
+    index->DeleteFileIndex(file_entry->full_path);
+    index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
+    return update(file_entry, UpdateType::CONTENT_CHANGE);
+  }
+  return false;
 }

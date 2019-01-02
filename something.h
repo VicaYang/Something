@@ -35,6 +35,7 @@ private slots:
   void search();
   void recvPUSN(int id, PUSN_RECORD pusn);
   void buildIndexSlot();
+  void updateResult();
 private:
   Ui::Something *ui;
   QLineEdit* input;

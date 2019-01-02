@@ -67,10 +67,10 @@ void Something::initEngine() {
     drivers.push_back(new USNParser(ch));
     monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));
     monitors.back()->start();
-    connect(monitors.back(), SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)));
+    connect(monitors.back(), SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
     fileindexs.push_back(new FileIndex(drivers.back()));
   }
-  searcher = new Searcher(drivers, fileindexs, model);
+  searcher = new Searcher(drivers, fileindexs);
   pLabel->setText("Finish");
   pProgressBar->setValue(100);
   searchBtn->setEnabled(true);
@@ -79,10 +79,44 @@ void Something::initEngine() {
 void Something::search() {
   auto query = input->text().toStdWString();
   searcher->parseQuery(query);
+  updateResult();
+}
+
+void Something::updateResult() {
+  model->removeRows(0, model->rowCount());
+  if (!searcher->content_result.empty() && !searcher->path_result.empty()) {
+    std::set<FileEntry*> tmp;
+    std::set_intersection(searcher->content_result.begin(), searcher->content_result.end(),
+      searcher->path_result.begin(), searcher->path_result.end(), std::inserter(tmp, tmp.end()));
+    int i = 0;
+    for (auto ptr : tmp) {
+      model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
+      model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
+      i++;
+    }
+  } else {
+    if (!searcher->content_result.empty()) {
+      int i = 0;
+      for (auto ptr : searcher->content_result) {
+        model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
+        model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
+        i++;
+      }
+    }
+    else if (!searcher->path_result.empty()) {
+      int i = 0;
+      for (auto ptr : searcher->path_result) {
+        model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
+        model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
+        i++;
+      }
+    }
+  }
 }
 
 void Something::recvPUSN(int id, PUSN_RECORD pusn) {
-  drivers[id]->recvPUSN(pusn);
+  auto needUpdate = searcher->recvPUSN(id, pusn);
+  if (needUpdate) updateResult();
 }
 
 Something::~Something() {
@@ -102,9 +136,9 @@ void Something::buildIndexSlot() {
 		if (path[0] == _drivers[id]) break;
 	}
 	std::wstring temp = path.toStdWString();
-	while (1) {
-		int pos = temp.find(47);
-		if (pos == -1)
+	while (true) {
+		auto pos = temp.find(47);
+		if (pos == std::wstring::npos)
 			break;
 		temp = temp.replace(pos, 1, L"\\");
 	}

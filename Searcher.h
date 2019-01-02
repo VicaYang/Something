@@ -3,23 +3,24 @@
 #include "USNParser.h"
 #include "FileIndex.h"
 
+enum class UpdateType { ADD, REMOVE, CONTENT_CHANGE };
 class Searcher {
 public:
-  Searcher(std::vector<USNParser*> drivers, std::vector<FileIndex*> indexs, QStandardItemModel* model) :
-    drivers(drivers), indexs(indexs), model(model){}
+  Searcher(std::vector<USNParser*> drivers, std::vector<FileIndex*> indexs) :
+    drivers(drivers), indexs(indexs){}
   void parseQuery(std::wstring& query);
   void searchPath(std::wstring& path);
   void searchContent(std::wstring& content);
-  void display();
-  void display(std::set<FileEntry*>& res);
   void filter(std::wstring& newpath);
-  void sort();
-private:
-  QStandardItemModel* model;
-  std::wstring addHighLight(std::wstring path);
+  bool recvPUSN(int id, PUSN_RECORD pusn);
+  bool update(FileEntry* entry, UpdateType type);
+  std::wstring addHighLight(std::wstring& path);
   std::vector<USNParser*> drivers;
   std::vector<FileIndex*> indexs;
   std::set<FileEntry*> content_result;
   std::set<FileEntry*> path_result;
   std::vector<std::wstring> splited;
+  std::wstring _content;
+  std::wstring _path;
+  bool singleSearch(std::wstring& path, std::wstring& query_path);
 };

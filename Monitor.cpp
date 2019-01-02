@@ -15,22 +15,35 @@ void Monitor::run() {
         waitNext(query.get());
         auto journal_query = getNext(query->StartUsn, 0);
         DWORD br;
-        DeviceIoControl(root_handle, FSCTL_READ_USN_JOURNAL,
+        while (DeviceIoControl(root_handle, FSCTL_READ_USN_JOURNAL,
           journal_query.get(), sizeof(*journal_query.get()),
           buffer, BUFLEN,
-          &br, nullptr);
-        auto PUsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
-        qDebug() << "-----------------\n";
-        qDebug() << "Filename " << QString::fromWCharArray(PUsnRecord->FileName,  PUsnRecord->FileNameLength / 2) << "\n";
-        qDebug() << "Reason " << QString("%1").arg(PUsnRecord->Reason, 0, 16)  << "\n";
-        qDebug() << "FileRef " << PUsnRecord->FileReferenceNumber << "\n";;
-        if (PUsnRecord->FileName[0] != L'$') {
-          emit sendPUSN(id, PUsnRecord);
+          &br, nullptr)) {
+          if (br == 8)break;
+          auto PUsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
+          DWORD dwRetBytes = br - sizeof(USN);
+          while (dwRetBytes>0) {
+            if (PUsnRecord->FileName[0] != L'$' && PUsnRecord->FileName[0] != L'~') {
+              qDebug() << "-----------------\n";
+              qDebug() << "Filename " << QString::fromWCharArray(PUsnRecord->FileName, PUsnRecord->FileNameLength / 2) << "\n";
+              qDebug() << "Reason " << QString("%1").arg(PUsnRecord->Reason, 0, 16) << "\n";
+              qDebug() << "FileRef " << PUsnRecord->FileReferenceNumber << "\n";
+              qDebug() << "ParentFileRef " << PUsnRecord->ParentFileReferenceNumber << "\n";
+              qDebug() << query->StartUsn;
+              qDebug() << *(USN*)buffer - query->StartUsn;
+              emit sendPUSN(id, PUsnRecord);
+            }
+            DWORD recordLen = PUsnRecord->RecordLength;
+            dwRetBytes -= recordLen;
+            PUsnRecord = (PUSN_RECORD)(((PCHAR)PUsnRecord) + recordLen);
+          }
+          journal_query->StartUsn = *(USN*)buffer;
         }
         last_usn = *(USN*)buffer;
         query->StartUsn = last_usn;
       }
     }
+    qDebug() << "Monitor end\n";
 }
 
 std::unique_ptr<READ_USN_JOURNAL_DATA> Monitor::getNext(USN start_usn, int byte_wait) {
