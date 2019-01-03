@@ -13,7 +13,6 @@ public:
   Monitor(int id, HANDLE root_handle, USN_JOURNAL_DATA journal);
   Monitor(const Monitor&) = delete;
   Monitor& operator=(const Monitor&) = delete;
-
 signals:
   void sendPUSN(int id, PUSN_RECORD pusn);
 

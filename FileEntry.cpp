@@ -1,4 +1,6 @@
 #include "FileEntry.h"
+#include <qlogging.h>
+#include <QDebug>
 
 FileEntry::FileEntry(const PUSN_RECORD usn_record, const char driver_letter) : driver_letter(driver_letter) {
   file_ref = usn_record->FileReferenceNumber;
@@ -20,8 +22,13 @@ FileEntry::FileEntry(const char driver_letter) : driver_letter(driver_letter) {
 void FileEntry::genPath(std::map<FILEREF, FileEntry*>& table) {
     if (full_path.length() > 0) return;
     auto parent = table[parent_ref];
-    parent->genPath(table);
-    full_path = table[parent_ref]->full_path + L"\\" + file_name;
+    if (!parent) {
+      qDebug() << "genPath fail\n";
+      full_path = driver_letter + L":\\" + file_name;
+    } else {
+      parent->genPath(table);
+      full_path = table[parent_ref]->full_path + L"\\" + file_name;
+    }
 }
 
 bool FileEntry::operator<(const FileEntry& rhs) {

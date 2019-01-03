@@ -43,8 +43,9 @@ std::wstring Reader::readFromPlainText(const std::wstring& path) {
 	wchar_t temp[500] = {0,};
 	std::wstring result = L"";
 	FILE *fp = _wfopen(path.c_str(), L"r+,ccs=UTF-8");
+  if (!fp) return result;
 	while (!feof(fp)) {
-		len = fread(temp, 1, sizeof(temp), fp);
+		len = fread(temp, 1, sizeof(temp) - 2, fp);
 		temp[len / 2] = 0;
 		result = result + temp;
 	}

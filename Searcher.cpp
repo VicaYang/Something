@@ -3,17 +3,13 @@
 #include <queue>
 #include <sstream>
 #include <QDebug>
-#include <QTimer>
 
 Searcher::Searcher(std::vector<char>& _drivers) {
   int id = 0;
-  QTime timer;
-  timer.start();
   for (auto ch : _drivers) {
     drivers.push_back(new USNParser(ch));
     monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));
     indexs.push_back(new FileIndex(drivers.back()));
-    qDebug() << timer.elapsed();
   }
 }
 void Searcher::parseQuery(std::wstring& query) {
@@ -63,6 +59,7 @@ std::vector<std::wstring> Searcher::recommend() const {
   if (all < 2) return res;
   std::map<std::wstring, int> cnt;
   for (auto result : path_result) {
+    if (result->full_path.length() == 0) continue;
     auto loc = result->full_path.find(splited[0]) + splited[0].size();
     for (size_t i = 1; i < 5; ++i) {
       if (i + loc > result->full_path.size()) break;
@@ -140,17 +137,14 @@ bool Searcher::singleSearch(std::wstring& path, std::wstring& query_path) {
 }
 
 bool Searcher::update(FileEntry* entry, UpdateType type) {
+  if (content_result.empty() && path_result.empty()) return false;
   if (type == UpdateType::ADD) {
-    content_result.clear();
-    searchContent(_content);
     if (singleSearch(entry->full_path, _path)) {
       path_result.insert(entry);
     }
     return true;
   }
   if (type == UpdateType::REMOVE) {
-    content_result.clear();
-    searchContent(_content);
     auto iter = path_result.find(entry);
     if (iter != path_result.end()) {
       path_result.erase(iter);
@@ -158,8 +152,6 @@ bool Searcher::update(FileEntry* entry, UpdateType type) {
     return true;
   }
   if (type == UpdateType::CONTENT_CHANGE) {
-    content_result.clear();
-    searchContent(_content);
     return true;
   }
   return false;
@@ -187,7 +179,7 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
     all_entries.erase(iter);
     return update(file_entry, UpdateType::REMOVE);
   }
-  if (pusn->Reason == USN_REASON_RENAME_NEW_NAME) { // add link
+  if (pusn->Reason == USN_REASON_RENAME_NEW_NAME || pusn->Reason == (USN_REASON_RENAME_NEW_NAME | USN_REASON_BASIC_INFO_CHANGE)) { // add link
     auto iter = recycle.find(pusn->FileReferenceNumber);
     if (iter == recycle.end()) return false;
     auto file_entry = iter->second;
@@ -204,7 +196,7 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
     if (Reader::isValid(file_entry->full_path)) index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
     return update(file_entry, UpdateType::ADD);
   }
-  if (pusn->Reason == USN_REASON_FILE_CREATE) {
+  if (pusn->Reason == USN_REASON_FILE_CREATE || pusn->Reason == USN_REASON_SECURITY_CHANGE) {
     if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0) return false;
     auto ptr = new FileEntry(pusn, drivers[id]->driver_letter);
     all_entries.insert({ pusn->FileReferenceNumber, ptr });
@@ -214,6 +206,23 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
     ptr->genPath(all_entries);
     if (Reader::isValid(ptr->full_path)) index->InsertFileIndex(ptr->file_ref, ptr->full_path);
     return update(ptr, UpdateType::ADD);
+  }
+  if (pusn->Reason == USN_REASON_FILE_DELETE) { // remove link
+    auto iter = all_entries.find(pusn->FileReferenceNumber);
+    if (iter == all_entries.end()) return false;
+    auto file_entry = iter->second;
+    auto& childs = sub_entries[pusn->ParentFileReferenceNumber];
+    auto iter2 = childs.begin();
+    while (iter2 != childs.end()) {
+      if ((*iter2)->file_ref == pusn->FileReferenceNumber) break;
+      ++iter2;
+    }
+    file_entry->genPath(all_entries);
+    recycle[pusn->FileReferenceNumber] = file_entry;
+    if (index->exist(pusn->FileReferenceNumber)) index->DeleteFileIndex(file_entry->full_path);
+    childs.erase(iter2);
+    all_entries.erase(iter);
+    return update(file_entry, UpdateType::REMOVE);
   }
   if (pusn->Reason & (0xff | USN_REASON_OBJECT_ID_CHANGE)) {
     auto iter = all_entries.find(pusn->FileReferenceNumber);

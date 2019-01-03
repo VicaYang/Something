@@ -20,4 +20,5 @@ void BuildIndexThread::run()
   emit setValue(100 * idx / all);
   emit setLabel(QString("Finish"));
   emit enableBtn(true);
+  emit resume();
 }

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <QStandardItemModel>
+#include <QMutex>
 #include "USNParser.h"
 #include "FileIndex.h"
 #include "Monitor.h"
@@ -25,4 +26,5 @@ public:
   std::wstring _content;
   std::wstring _path;
   bool singleSearch(std::wstring& path, std::wstring& query_path);
+  QMutex lock;
 };

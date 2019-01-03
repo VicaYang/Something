@@ -9,6 +9,7 @@ public:
   BuildIndexThread(std::set<FileEntry*>&& files, USNParser* driver, FileIndex* index);
   void run();
 signals:
+  void resume();
   void setValue(int);
   void setLabel(QString);
   void enableBtn(bool);

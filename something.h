@@ -31,7 +31,8 @@ public:
   explicit Something(QWidget *parent = 0);
   ~Something();
   void initEngine();
-  void keyPressEvent(QKeyEvent  *event);
+  void keyPressEvent(QKeyEvent  *event) override;
+  void mousePressEvent(QMouseEvent* event) override;
 protected:
   void closeEvent(QCloseEvent *e);
 private slots:
@@ -41,10 +42,11 @@ private slots:
   void updateResult();
   void showRecommend(const QString& path);
   void click_rec(QListWidgetItem* item);
+  void unlock() { searcher->lock.unlock(); }
 private:
   Ui::Something *ui;
   QLineEdit* input;
-  QPushButton* searchBtn;
+  //QPushButton* searchBtn;
   QTableView* table;
   QListWidget* list;
   QStandardItemModel* model;
