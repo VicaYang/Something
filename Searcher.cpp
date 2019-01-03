@@ -43,6 +43,35 @@ void Searcher::searchPath(std::wstring& path) {
   }
 }
 
+std::vector<std::wstring> Searcher::recommend() const {
+  std::vector<std::wstring> res;
+  if (splited.size() != 1) return res;
+  int all = path_result.size();
+  if (all < 2) return res;
+  std::map<std::wstring, int> cnt;
+  for (auto result : path_result) {
+    auto loc = result->full_path.find(splited[0]) + splited[0].size();
+    for (size_t i = 1; i < 5; ++i) {
+      if (i + loc > result->full_path.size()) break;
+      auto word = result->full_path.substr(loc, i);
+      if (cnt.find(word) == cnt.end())
+        cnt[word] = 1;
+      else
+        cnt[word]++;
+    }
+  }
+  typedef std::function<bool(std::pair<std::wstring, int>, std::pair<std::wstring, int>)> Comparator;
+  Comparator compFunctor =
+    [](std::pair<std::wstring, int> elem1, std::pair<std::wstring, int> elem2) { return elem1.second > elem2.second; };
+  std::set<std::pair<std::wstring, int>, Comparator> sorted_cnt( cnt.begin(), cnt.end(), compFunctor);
+  for(auto kvp : sorted_cnt) {
+    if (kvp.second > all / 3) {
+      res.push_back(splited[0] + kvp.first);
+    }
+  }
+  return res;
+}
+
 void Searcher::searchContent(std::wstring& content) {
   content_result.clear();
   for (auto index : indexs) {
@@ -172,8 +201,10 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
   if (pusn->Reason & (0xff | USN_REASON_OBJECT_ID_CHANGE)) {
     auto file_entry = all_entries[pusn->FileReferenceNumber];
     file_entry->genPath(drivers[id]->all_entries);
-    index->DeleteFileIndex(file_entry->full_path);
-    index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
+    if (index->exist(file_entry->file_ref)) {
+      index->DeleteFileIndex(file_entry->full_path);
+      index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
+    }
     return update(file_entry, UpdateType::CONTENT_CHANGE);
   }
   return false;

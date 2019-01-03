@@ -15,6 +15,7 @@ public:
   bool recvPUSN(int id, PUSN_RECORD pusn);
   bool update(FileEntry* entry, UpdateType type);
   std::wstring addHighLight(std::wstring& path);
+  std::vector<std::wstring> recommend() const;
   std::vector<USNParser*> drivers;
   std::vector<FileIndex*> indexs;
   std::set<FileEntry*> content_result;

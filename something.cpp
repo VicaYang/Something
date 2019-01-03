@@ -61,6 +61,7 @@ void Something::createUI() {
   list->move(18, 68);
   list->resize(907, 17);
   list->hide();
+  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(search()));
   connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(showRecommend(const QString &)));
   connect(list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(click_rec(QListWidgetItem*)));
 }
@@ -86,11 +87,14 @@ void Something::search() {
   auto query = input->text().toStdWString();
   history.addHistory(query);
   searcher->parseQuery(query);
+  pLabel->setText(QString("%1 records").arg(searcher->path_result.size() + searcher->content_result.size()));
   updateResult();
 }
 
 void Something::updateResult() {
   model->removeRows(0, model->rowCount());
+  table->setUpdatesEnabled(false);
+  int display_max = 100;
   if (!searcher->content_result.empty() && !searcher->path_result.empty()) {
     std::set<FileEntry*> tmp;
     std::set_intersection(searcher->content_result.begin(), searcher->content_result.end(),
@@ -100,6 +104,7 @@ void Something::updateResult() {
       model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
       model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
       i++;
+      if (i == display_max)break;
     }
   } else {
     if (!searcher->content_result.empty()) {
@@ -108,6 +113,7 @@ void Something::updateResult() {
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
+        if (i == display_max)break;
       }
     }
     else if (!searcher->path_result.empty()) {
@@ -116,9 +122,11 @@ void Something::updateResult() {
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
+        if (i == display_max)break;
       }
     }
   }
+  table->setUpdatesEnabled(true);
 }
 
 void Something::recvPUSN(int id, PUSN_RECORD pusn) {
@@ -164,6 +172,8 @@ void Something::buildIndexSlot() {
 void::Something::showRecommend(const QString& path) {
 	list->clear();
 	std::vector <std::wstring> result = history.recommend(path.toStdWString());
+  std::vector<std::wstring>&& result2 = searcher->recommend();
+  result.insert(result.end(), std::make_move_iterator(result2.begin()), std::make_move_iterator(result2.end()));
 	if (result.size() == 0 || path == "") {
 		list->hide();
 		return;

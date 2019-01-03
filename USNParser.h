@@ -15,7 +15,8 @@ public:
   void genEntries();
   void cleanHiddenEntries();
   void getRootHandle();
-
+  void addFileEntry(FileEntry* entry);
+  void removeFileEntry(std::map<FILEREF, FileEntry*>::iterator& iter);
   std::set<FileEntry*> query(const std::wstring& pattern);
   std::set<FileEntry*> querySimple(const std::wstring& pattern);
   std::set<FileEntry*> queryComplex(const std::wstring& pattern);

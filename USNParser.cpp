@@ -104,6 +104,16 @@ void USNParser::getRootHandle() {
   }
 }
 
+void USNParser::addFileEntry(FileEntry* entry) {
+  all_entries.insert({ entry->file_ref, entry });
+  if (sub_entries.count(entry->parent_ref) == 0)
+    sub_entries.insert({ entry->parent_ref , std::vector<FileEntry*>() });
+  sub_entries[entry->parent_ref].push_back(entry);
+}
+void USNParser::removeFileEntry(std::map<FILEREF, FileEntry*>::iterator& iter) {
+  
+}
+
 void USNParser::genEntries() {
   constexpr int BUFLEN = 1 << 18;
   all_entries[ROOT_REFERENCE] = new FileEntry(driver_letter);
@@ -120,10 +130,7 @@ void USNParser::genEntries() {
     while (dwRetBytes>0) {
       if (UsnRecord->FileName[0] != L'$' && UsnRecord->FileName[0] != L'~') {
         auto ptr = new FileEntry(UsnRecord);
-        all_entries.insert({ UsnRecord->FileReferenceNumber, ptr });
-        if (sub_entries.count(UsnRecord->ParentFileReferenceNumber) == 0)
-          sub_entries.insert({ UsnRecord->ParentFileReferenceNumber , std::vector<FileEntry*>() });
-        sub_entries[UsnRecord->ParentFileReferenceNumber].push_back(ptr);
+        addFileEntry(ptr);
       }
       DWORD recordLen = UsnRecord->RecordLength;
       dwRetBytes -= recordLen;
@@ -136,14 +143,22 @@ void USNParser::genEntries() {
 
 void USNParser::cleanHiddenEntries() {
   auto iter = all_entries.begin();
+  std::set<FileEntry*> tmp;
   while(iter != all_entries.end()) {
-    if (all_entries.count(iter->second->parent_ref) == 0) {
-      iter = all_entries.erase(iter);
-      auto tmp = sub_entries.find(iter->second->parent_ref);
-      if (tmp != sub_entries.end()) sub_entries.erase(tmp);
-    } else {
-      ++iter;
+    if (iter->second->parent_ref != 0 && all_entries.count(iter->second->parent_ref) == 0) {
+      if (iter->second->is_folder) {
+        recursiveAdd(iter->second->file_ref, tmp);
+      }
+      tmp.insert(iter->second);
     }
+    ++iter;
+  }
+  for (auto entry : tmp) {
+    auto iter2 = all_entries.find(entry->file_ref);
+    auto parent = sub_entries.find(iter2->second->parent_ref);
+    if (parent != sub_entries.end()) sub_entries.erase(parent);
+    delete iter2->second;
+    iter = all_entries.erase(iter2);
   }
 }
 

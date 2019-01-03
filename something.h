@@ -15,6 +15,7 @@
 #include <QCloseEvent>
 #include <QListWidget.h>
 #include <QLabel>
+#include "History.h"
 #include "Searcher.h"
 #include "HTMLDelegate.h"
 
