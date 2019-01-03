@@ -57,6 +57,12 @@ void Something::createUI() {
   pProgressBar->setFixedWidth(0.4 * width());
   this->statusBar()->addWidget(pLabel);
   this->statusBar()->addPermanentWidget(pProgressBar);
+  list = new QListWidget(this);
+  list->move(18, 68);
+  list->resize(907, 17);
+  list->hide();
+  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(showRecommend(const QString &)));
+  connect(list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(click_rec(QListWidgetItem*)));
 }
 
 void Something::initEngine() {
@@ -78,6 +84,7 @@ void Something::initEngine() {
 
 void Something::search() {
   auto query = input->text().toStdWString();
+  history.addHistory(query);
   searcher->parseQuery(query);
   updateResult();
 }
@@ -152,4 +159,26 @@ void Something::buildIndexSlot() {
   connect(dataProcessor, SIGNAL(enableBtn(bool)), searchBtn, SLOT(setEnabled(bool)));
   connect(dataProcessor, SIGNAL(enableBtn(bool)), buildIndex, SLOT(setEnabled(bool)));
   dataProcessor->start();
+}
+
+void::Something::showRecommend(const QString& path) {
+	list->clear();
+	std::vector <std::wstring> result = history.recommend(path.toStdWString());
+	if (result.size() == 0 || path == "") {
+		list->hide();
+		return;
+	}
+	for (int i = 0; i < result.size(); i++) {
+		QListWidgetItem *rcList = new QListWidgetItem(list, QListWidgetItem::Type);
+		QString temp = QString::fromStdWString(result[i]);
+		rcList->setText(temp);
+		list->insertItem(i, rcList);
+	}
+	list->resize(907, 17 * result.size());
+	list->setCurrentRow(result.size());
+	list->show();
+}
+
+void Something::click_rec(QListWidgetItem* item) {
+	input->setText(item->text());
 }
