@@ -13,6 +13,7 @@
 #include "FileIndex.h"
 #include <windows.h>
 #include <QCloseEvent>
+#include <QListWidget.h>
 #include <QLabel>
 #include "Searcher.h"
 #include "HTMLDelegate.h"
@@ -43,6 +44,7 @@ private:
   QLineEdit* input;
   QPushButton* searchBtn;
   QTableView* table;
+  QListWidget* list;
   QStandardItemModel* model;
   HTMLDelegate* delegate;
   std::vector<char> _drivers = { 'D' };
