@@ -131,6 +131,20 @@ void USNParser::genEntries() {
     }
     mftEnumData.StartFileReferenceNumber = *(USN *)&buffer;
   }
+  cleanHiddenEntries();
+}
+
+void USNParser::cleanHiddenEntries() {
+  auto iter = all_entries.begin();
+  while(iter != all_entries.end()) {
+    if (all_entries.count(iter->second->parent_ref) == 0) {
+      iter = all_entries.erase(iter);
+      auto tmp = sub_entries.find(iter->second->parent_ref);
+      if (tmp != sub_entries.end()) sub_entries.erase(tmp);
+    } else {
+      ++iter;
+    }
+  }
 }
 
 USNParser::~USNParser() {

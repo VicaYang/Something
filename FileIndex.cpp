@@ -99,13 +99,13 @@ void FileIndex::InsertFileIndex(FILEREF num, const std::wstring& path) {
 void FileIndex::DeleteFileIndex(const std::wstring& path) {
 	std::list<FileInfo>::iterator iter;
 	std::list<post>::iterator iter2;
-	for (iter = Files.begin(); iter != Files.end(); iter++) {
+	for (iter = Files.begin(); iter != Files.end(); ++iter) {
 		if (iter->FilePath == path) {
 			break;
 		}
 	}
 	for (int i = 0; i < iter->words.size(); i++) {
-		for (iter2 = DB[iter->words[i]].begin(); iter2 != DB[iter->words[i]].end(); iter2++) {
+		for (iter2 = DB[iter->words[i]].begin(); iter2 != DB[iter->words[i]].end(); ++iter2) {
 			if (iter2->FileNum == iter->FileNum) {
 				DB[iter->words[i]].erase(iter2);
 				break;
@@ -170,7 +170,7 @@ std::set<FileEntry*> FileIndex::SearchFile(const std::wstring &sentence) {
 	sort(posts.begin(), posts.end(), postcompare);
 	std::set<FileEntry*> Result;
 	for (int i = 0; i < posts.size(); i++) {
-		for (iter2 = Files.begin(); iter2 != Files.end(); iter2++) {
+		for (iter2 = Files.begin(); iter2 != Files.end(); ++iter2) {
 			if (iter2->FileNum == posts[i].FileNum) {
 				Result.insert(driver->all_entries[iter2->FileNum]);
 				break;

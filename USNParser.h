@@ -13,6 +13,7 @@ public:
   ~USNParser();
   bool createUsnJournal();
   void genEntries();
+  void cleanHiddenEntries();
   void getRootHandle();
 
   std::set<FileEntry*> query(const std::wstring& pattern);

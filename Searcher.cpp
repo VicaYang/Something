@@ -52,7 +52,8 @@ void Searcher::searchContent(std::wstring& content) {
 }
 
 void Searcher::filter(std::wstring& newpath) {
-  for (auto iter = path_result.begin(); iter != path_result.end(); ++iter) {
+  auto iter = path_result.begin();
+  while (iter != path_result.end()) {
     if ((*iter)->full_path.find(newpath) == std::wstring::npos) {
       iter = path_result.erase(iter);
     } else {
@@ -130,8 +131,9 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
   if (pusn->Reason == USN_REASON_RENAME_OLD_NAME) { // remove link
     auto& childs = sub_entries[pusn->ParentFileReferenceNumber];
     auto iter = childs.begin();
-    for (; iter != childs.end(); ++iter) {
+    while (iter != childs.end()) {
       if ((*iter)->file_ref == pusn->FileReferenceNumber) break;
+      ++iter;
     }
     auto ptr = *iter;
     ptr->genPath(all_entries);
