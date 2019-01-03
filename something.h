@@ -31,6 +31,7 @@ public:
   explicit Something(QWidget *parent = 0);
   ~Something();
   void initEngine();
+  void keyPressEvent(QKeyEvent  *event);
 protected:
   void closeEvent(QCloseEvent *e);
 private slots:
@@ -39,7 +40,7 @@ private slots:
   void buildIndexSlot();
   void updateResult();
   void showRecommend(const QString& path);
-	void click_rec(QListWidgetItem* item);
+  void click_rec(QListWidgetItem* item);
 private:
   Ui::Something *ui;
   QLineEdit* input;

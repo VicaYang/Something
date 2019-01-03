@@ -69,21 +69,35 @@ std::wstring Reader::readFromPdf(const std::wstring& path) {
 	std::wstring cmd = L"xpdf\\bin64\\pdftotext.exe ";
 	cmd = cmd + path + L" temp.txt";
 	QString qcmd = QString::fromStdWString(cmd);
-  auto process = new QProcess();
+	auto process = new QProcess();
 	process->start(qcmd);
 	process->waitForFinished();
 	process->close();
 	int len;
 	wchar_t temp[500] = { 0, };
-	std::wstring result = L"";
+	std::wstring tpresult = L"";
 	FILE *fp = _wfopen(L"temp.txt", L"r+,ccs=UTF-8");
 	while (!feof(fp)) {
 		len = fread(temp, 1, sizeof(temp), fp);
 		temp[len / 2 - 1] = 0;
-		result = result + temp;
+		tpresult = tpresult + temp;
 	}
 	fclose(fp);
 	process->close();
-  delete process;
+	delete process;
+	int check = 0;
+	std::wstring result = L"";
+	for (int i = 0; i < tpresult.length(); i++) {
+		if (tpresult[i] > 32 && tpresult[i] < 61000) {
+			result += tpresult[i];
+			check = 0;
+		}
+		else {
+			if (check > 0)
+				continue;
+			result += 32;
+			check++;
+		}
+	}
 	return result;
 }

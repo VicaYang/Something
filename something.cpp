@@ -195,4 +195,13 @@ void::Something::showRecommend(const QString& path) {
 
 void Something::click_rec(QListWidgetItem* item) {
 	input->setText(item->text());
+	list->clear();
+	list->hide();
+}
+
+void Something::keyPressEvent(QKeyEvent *event) {
+	if (event->key() == Qt::Key_Escape) {
+		list->clear();
+		list->hide();
+	}
 }
