@@ -36,6 +36,8 @@ private slots:
   void recvPUSN(int id, PUSN_RECORD pusn);
   void buildIndexSlot();
   void updateResult();
+  void showRecommend(const QString& path);
+	void click_rec(QListWidgetItem* item);
 private:
   Ui::Something *ui;
   QLineEdit* input;
@@ -52,6 +54,7 @@ private:
   QAction* buildIndex;
   QLabel* pLabel;
   QProgressBar* pProgressBar;
+  History history;
   void createUI();
 
 };
