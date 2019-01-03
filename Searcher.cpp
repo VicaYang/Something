@@ -3,7 +3,19 @@
 #include <queue>
 #include <sstream>
 #include <QDebug>
+#include <QTimer>
 
+Searcher::Searcher(std::vector<char>& _drivers) {
+  int id = 0;
+  QTime timer;
+  timer.start();
+  for (auto ch : _drivers) {
+    drivers.push_back(new USNParser(ch));
+    monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));
+    indexs.push_back(new FileIndex(drivers.back()));
+    qDebug() << timer.elapsed();
+  }
+}
 void Searcher::parseQuery(std::wstring& query) {
   content_result.clear();
   path_result.clear();
@@ -47,7 +59,7 @@ void Searcher::searchPath(std::wstring& path) {
 std::vector<std::wstring> Searcher::recommend() const {
   std::vector<std::wstring> res;
   if (splited.size() != 1) return res;
-  int all = path_result.size();
+  auto all = path_result.size();
   if (all < 2) return res;
   std::map<std::wstring, int> cnt;
   for (auto result : path_result) {
@@ -112,7 +124,7 @@ std::wstring Searcher::addHighLight(std::wstring& path) {
     ss << L"<b>";
     ss << path.substr(top.first, top.second);
     ss << L"</b>";
-    cur = top.first + top.second;
+    cur = static_cast<int>(top.first + top.second);
   }
   ss << path.substr(cur);
   return ss.str();

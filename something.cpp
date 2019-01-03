@@ -68,23 +68,14 @@ void Something::createUI() {
 
 void Something::initEngine() {
   searchBtn->setEnabled(false);
-  int id = 0;
-  QTime timer;
-  timer.start();
-  for (auto ch : _drivers) {
-    drivers.push_back(new USNParser(ch));
-    monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));
-    fileindexs.push_back(new FileIndex(drivers.back()));
-    qDebug() << timer.elapsed();
-  }
-  searcher = new Searcher(drivers, fileindexs);
-  for (int i = 0; i < id; ++i) {
-    connect(monitors[i], SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
-    monitors[i]->start();
-  }
+  searcher = new Searcher(_drivers);
   pLabel->setText("Finish");
   pProgressBar->setValue(100);
   searchBtn->setEnabled(true);
+  for (int i = 0; i < _drivers.size(); ++i) {
+    connect(searcher->monitors[i], SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
+    searcher->monitors[i]->start();
+  }
   connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(search()));
   connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(showRecommend(const QString &)));
   connect(list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(click_rec(QListWidgetItem*)));
@@ -102,13 +93,16 @@ void Something::updateResult() {
   model->removeRows(0, model->rowCount());
   table->setUpdatesEnabled(false);
   int display_max = 100;
+  std::map<char, int> drivers_to_id;
+  int id = 0;
+  for (auto ch : _drivers) drivers_to_id.insert({ ch, id++ });
   if (!searcher->content_result.empty() && !searcher->path_result.empty()) {
     std::set<FileEntry*> tmp;
     std::set_intersection(searcher->content_result.begin(), searcher->content_result.end(),
       searcher->path_result.begin(), searcher->path_result.end(), std::inserter(tmp, tmp.end()));
     int i = 0;
     for (auto ptr : tmp) {
-      ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
+      ptr->genPath(searcher->drivers[drivers_to_id[ptr->driver_letter]]->all_entries);
       model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
       model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
       i++;
@@ -118,7 +112,7 @@ void Something::updateResult() {
     if (!searcher->content_result.empty()) {
       int i = 0;
       for (auto ptr : searcher->content_result) {
-        ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
+        ptr->genPath(searcher->drivers[drivers_to_id[ptr->driver_letter]]->all_entries);
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
@@ -128,7 +122,7 @@ void Something::updateResult() {
     else if (!searcher->path_result.empty()) {
       int i = 0;
       for (auto ptr : searcher->path_result) {
-        ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
+        ptr->genPath(searcher->drivers[drivers_to_id[ptr->driver_letter]]->all_entries);
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
@@ -149,7 +143,7 @@ Something::~Something() {
 }
 
 void Something::closeEvent(QCloseEvent* e) {
-  for (auto ptr : monitors) ptr->terminate();
+  for (auto ptr : searcher->monitors) ptr->terminate();
   e->accept();
 }
 
@@ -167,11 +161,11 @@ void Something::buildIndexSlot() {
 			break;
 		temp = temp.replace(pos, 1, L"\\");
 	}
-  const auto ref_num = drivers[id]->getFileRef(temp);
+  const auto ref_num = searcher->drivers[id]->getFileRef(temp);
   if (ref_num == 0) return;
   std::set<FileEntry*> files;
-  drivers[id]->recursiveAdd(ref_num, files);
-  auto dataProcessor = new BuildIndexThread(std::move(files), drivers[id], fileindexs[id]);
+  searcher->drivers[id]->recursiveAdd(ref_num, files);
+  auto dataProcessor = new BuildIndexThread(std::move(files), searcher->drivers[id], searcher->indexs[id]);
   connect(dataProcessor, SIGNAL(setValue(int)), pProgressBar, SLOT(setValue(int)));
   connect(dataProcessor, SIGNAL(setLabel(QString)), pLabel, SLOT(setText(QString)));
   connect(dataProcessor, SIGNAL(enableBtn(bool)), searchBtn, SLOT(setEnabled(bool)));
@@ -194,8 +188,8 @@ void::Something::showRecommend(const QString& path) {
 		rcList->setText(temp);
 		list->insertItem(i, rcList);
 	}
-	list->resize(907, 17 * result.size());
-	list->setCurrentRow(result.size());
+	list->resize(907, static_cast<int>(17 * result.size()));
+	list->setCurrentRow(static_cast<int>(result.size()));
 	list->show();
 }
 

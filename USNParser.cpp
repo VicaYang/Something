@@ -31,7 +31,7 @@ std::set<FileEntry*> USNParser::querySimple(const std::wstring& pattern) {
   for (auto& kvp : all_entries) {
     if (kvp.second->file_name.find(pattern) != std::wstring::npos) {
       res.insert(kvp.second);
-      if (res.size() > max_search) return;
+      if (res.size() > max_search) break;
       if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
         recursiveAdd(kvp.second->file_ref, res);
       }
@@ -48,7 +48,7 @@ std::set<FileEntry*> USNParser::queryComplex(const std::wstring& pattern) {
       kvp.second->genPath(all_entries);
       if (kvp.second->full_path.find(pattern) != std::wstring::npos) {
         res.insert(kvp.second);
-        if (res.size() > max_search) return;
+        if (res.size() > max_search) break;
         if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
           recursiveAdd(kvp.second->file_ref, res);
         }

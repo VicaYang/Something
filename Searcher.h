@@ -2,12 +2,12 @@
 #include <QStandardItemModel>
 #include "USNParser.h"
 #include "FileIndex.h"
+#include "Monitor.h"
 
 enum class UpdateType { ADD, REMOVE, CONTENT_CHANGE };
 class Searcher {
 public:
-  Searcher(std::vector<USNParser*> drivers, std::vector<FileIndex*> indexs) :
-    drivers(drivers), indexs(indexs){}
+  Searcher(std::vector<char>& _drivers);
   void parseQuery(std::wstring& query);
   void searchPath(std::wstring& path);
   void searchContent(std::wstring& content);
@@ -16,6 +16,7 @@ public:
   bool update(FileEntry* entry, UpdateType type);
   std::wstring addHighLight(std::wstring& path);
   std::vector<std::wstring> recommend() const;
+  std::vector<Monitor*> monitors;
   std::vector<USNParser*> drivers;
   std::vector<FileIndex*> indexs;
   std::set<FileEntry*> content_result;

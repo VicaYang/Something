@@ -49,10 +49,9 @@ private:
   QStandardItemModel* model;
   HTMLDelegate* delegate;
   std::vector<char> _drivers = { 'C', 'D' };
-  std::map<char, int> _map { {'C', 0}, {'D', 1} };
-  std::vector<USNParser*> drivers;
-  std::vector<Monitor*> monitors;
-  std::vector<FileIndex*> fileindexs;
+  //std::vector<USNParser*> drivers;
+  //std::vector<Monitor*> monitors;
+  //std::vector<FileIndex*> fileindexs;
   Searcher* searcher;
   QMenu* menu;
   QAction* buildIndex;
