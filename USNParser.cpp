@@ -31,12 +31,12 @@ std::set<FileEntry*> USNParser::querySimple(const std::wstring& pattern) {
   for (auto& kvp : all_entries) {
     if (kvp.second->file_name.find(pattern) != std::wstring::npos) {
       res.insert(kvp.second);
+      if (res.size() > max_search) return;
       if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
         recursiveAdd(kvp.second->file_ref, res);
       }
     }
   }
-  for (auto ptr : res) ptr->genPath(all_entries);
   return res;
 }
 
@@ -48,17 +48,18 @@ std::set<FileEntry*> USNParser::queryComplex(const std::wstring& pattern) {
       kvp.second->genPath(all_entries);
       if (kvp.second->full_path.find(pattern) != std::wstring::npos) {
         res.insert(kvp.second);
+        if (res.size() > max_search) return;
         if (kvp.second->is_folder && sub_entries.count(kvp.second->file_ref)) {
           recursiveAdd(kvp.second->file_ref, res);
         }
       }
     }
   }
-  for (auto ptr : res) ptr->genPath(all_entries);
   return res;
 }
 
 void USNParser::recursiveAdd(FILEREF folder, std::set<FileEntry*>& res) {
+  if (res.size() > max_search) return;
   auto& childs = sub_entries[folder];
   for (auto child : childs) {
     res.insert(child);
@@ -110,9 +111,6 @@ void USNParser::addFileEntry(FileEntry* entry) {
     sub_entries.insert({ entry->parent_ref , std::vector<FileEntry*>() });
   sub_entries[entry->parent_ref].push_back(entry);
 }
-void USNParser::removeFileEntry(std::map<FILEREF, FileEntry*>::iterator& iter) {
-  
-}
 
 void USNParser::genEntries() {
   constexpr int BUFLEN = 1 << 18;
@@ -129,7 +127,7 @@ void USNParser::genEntries() {
     UsnRecord = (PUSN_RECORD)(((PCHAR)buffer) + sizeof(USN));
     while (dwRetBytes>0) {
       if (UsnRecord->FileName[0] != L'$' && UsnRecord->FileName[0] != L'~') {
-        auto ptr = new FileEntry(UsnRecord);
+        auto ptr = new FileEntry(UsnRecord, driver_letter);
         addFileEntry(ptr);
       }
       DWORD recordLen = UsnRecord->RecordLength;

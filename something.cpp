@@ -5,6 +5,8 @@
 #include <QHBoxLayout>
 #include <QFileDialog>
 #include "BuildIndexThread.h"
+#include <QDebug>
+#include <QTime>
 
 Something::Something(QWidget *parent) : QMainWindow(parent), ui(new Ui::Something) {
   ui->setupUi(this);
@@ -61,26 +63,31 @@ void Something::createUI() {
   list->move(18, 68);
   list->resize(907, 17);
   list->hide();
-  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(search()));
-  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(showRecommend(const QString &)));
-  connect(list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(click_rec(QListWidgetItem*)));
+
 }
 
 void Something::initEngine() {
-  pLabel->setText("Building Index......");
   searchBtn->setEnabled(false);
   int id = 0;
+  QTime timer;
+  timer.start();
   for (auto ch : _drivers) {
     drivers.push_back(new USNParser(ch));
     monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));
-    monitors.back()->start();
-    connect(monitors.back(), SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
     fileindexs.push_back(new FileIndex(drivers.back()));
+    qDebug() << timer.elapsed();
   }
   searcher = new Searcher(drivers, fileindexs);
+  for (int i = 0; i < id; ++i) {
+    connect(monitors[i], SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
+    monitors[i]->start();
+  }
   pLabel->setText("Finish");
   pProgressBar->setValue(100);
   searchBtn->setEnabled(true);
+  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(search()));
+  connect(input, SIGNAL(textChanged(const QString &)), this, SLOT(showRecommend(const QString &)));
+  connect(list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(click_rec(QListWidgetItem*)));
 }
 
 void Something::search() {
@@ -101,6 +108,7 @@ void Something::updateResult() {
       searcher->path_result.begin(), searcher->path_result.end(), std::inserter(tmp, tmp.end()));
     int i = 0;
     for (auto ptr : tmp) {
+      ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
       model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
       model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
       i++;
@@ -110,6 +118,7 @@ void Something::updateResult() {
     if (!searcher->content_result.empty()) {
       int i = 0;
       for (auto ptr : searcher->content_result) {
+        ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
@@ -119,6 +128,7 @@ void Something::updateResult() {
     else if (!searcher->path_result.empty()) {
       int i = 0;
       for (auto ptr : searcher->path_result) {
+        ptr->genPath(searcher->drivers[_map[ptr->driver_letter]]->all_entries);
         model->setItem(i, 0, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->file_name))));
         model->setItem(i, 1, new QStandardItem(QString::fromStdWString(searcher->addHighLight(ptr->full_path))));
         i++;
@@ -139,7 +149,7 @@ Something::~Something() {
 }
 
 void Something::closeEvent(QCloseEvent* e) {
-  for (auto* ptr : monitors) ptr->terminate();
+  for (auto ptr : monitors) ptr->terminate();
   e->accept();
 }
 

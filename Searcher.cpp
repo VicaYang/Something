@@ -2,6 +2,7 @@
 #include "util.h"
 #include <queue>
 #include <sstream>
+#include <QDebug>
 
 void Searcher::parseQuery(std::wstring& query) {
   content_result.clear();
@@ -64,7 +65,7 @@ std::vector<std::wstring> Searcher::recommend() const {
   Comparator compFunctor =
     [](std::pair<std::wstring, int> elem1, std::pair<std::wstring, int> elem2) { return elem1.second > elem2.second; };
   std::set<std::pair<std::wstring, int>, Comparator> sorted_cnt( cnt.begin(), cnt.end(), compFunctor);
-  for(auto kvp : sorted_cnt) {
+  for(auto& kvp : sorted_cnt) {
     if (kvp.second > all / 3) {
       res.push_back(splited[0] + kvp.first);
     }
@@ -158,23 +159,27 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
   auto& index = indexs[id];
   auto& recycle = drivers[id]->recycle;
   if (pusn->Reason == USN_REASON_RENAME_OLD_NAME) { // remove link
+    auto iter = all_entries.find(pusn->FileReferenceNumber);
+    if (iter == all_entries.end()) return false;
+    auto file_entry = iter->second;
     auto& childs = sub_entries[pusn->ParentFileReferenceNumber];
-    auto iter = childs.begin();
-    while (iter != childs.end()) {
-      if ((*iter)->file_ref == pusn->FileReferenceNumber) break;
-      ++iter;
+    auto iter2 = childs.begin();
+    while (iter2 != childs.end()) {
+      if ((*iter2)->file_ref == pusn->FileReferenceNumber) break;
+      ++iter2;
     }
-    auto ptr = *iter;
-    ptr->genPath(all_entries);
-    recycle[pusn->FileReferenceNumber] = ptr;
-    if (index->exist(pusn->FileReferenceNumber)) index->DeleteFileIndex(ptr->full_path);
-    childs.erase(iter);
-    auto iter2 = all_entries.find(pusn->FileReferenceNumber);
-    all_entries.erase(iter2);
-    return update(ptr, UpdateType::REMOVE);
+    file_entry->genPath(all_entries);
+    recycle[pusn->FileReferenceNumber] = file_entry;
+    if (index->exist(pusn->FileReferenceNumber)) index->DeleteFileIndex(file_entry->full_path);
+    childs.erase(iter2);
+    all_entries.erase(iter);
+    return update(file_entry, UpdateType::REMOVE);
   }
   if (pusn->Reason == USN_REASON_RENAME_NEW_NAME) { // add link
-    auto file_entry = recycle[pusn->FileReferenceNumber];
+    auto iter = recycle.find(pusn->FileReferenceNumber);
+    if (iter == recycle.end()) return false;
+    auto file_entry = iter->second;
+    if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0)  return false;
     file_entry->parent_ref = pusn->ParentFileReferenceNumber;
     file_entry->file_name = std::wstring(pusn->FileName).substr(0, pusn->FileNameLength / 2);
     file_entry->full_path.clear();
@@ -183,13 +188,13 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
       sub_entries.insert({ pusn->ParentFileReferenceNumber , std::vector<FileEntry*>() });
     sub_entries[pusn->ParentFileReferenceNumber].push_back(file_entry);
     file_entry->genPath(all_entries);
-    auto iter = recycle.find(pusn->FileReferenceNumber);
     recycle.erase(iter);
     if (Reader::isValid(file_entry->full_path)) index->InsertFileIndex(file_entry->file_ref, file_entry->full_path);
     return update(file_entry, UpdateType::ADD);
   }
   if (pusn->Reason == USN_REASON_FILE_CREATE) {
-    auto ptr = new FileEntry(pusn);
+    if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0) return false;
+    auto ptr = new FileEntry(pusn, drivers[id]->driver_letter);
     all_entries.insert({ pusn->FileReferenceNumber, ptr });
     if (sub_entries.count(pusn->ParentFileReferenceNumber) == 0)
       sub_entries.insert({ pusn->ParentFileReferenceNumber , std::vector<FileEntry*>() });
@@ -199,7 +204,9 @@ bool Searcher::recvPUSN(int id, PUSN_RECORD pusn) {
     return update(ptr, UpdateType::ADD);
   }
   if (pusn->Reason & (0xff | USN_REASON_OBJECT_ID_CHANGE)) {
-    auto file_entry = all_entries[pusn->FileReferenceNumber];
+    auto iter = all_entries.find(pusn->FileReferenceNumber);
+    if (iter == all_entries.end()) return false;
+    auto file_entry = iter->second;
     file_entry->genPath(drivers[id]->all_entries);
     if (index->exist(file_entry->file_ref)) {
       index->DeleteFileIndex(file_entry->full_path);

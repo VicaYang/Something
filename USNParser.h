@@ -16,7 +16,6 @@ public:
   void cleanHiddenEntries();
   void getRootHandle();
   void addFileEntry(FileEntry* entry);
-  void removeFileEntry(std::map<FILEREF, FileEntry*>::iterator& iter);
   std::set<FileEntry*> query(const std::wstring& pattern);
   std::set<FileEntry*> querySimple(const std::wstring& pattern);
   std::set<FileEntry*> queryComplex(const std::wstring& pattern);
@@ -29,4 +28,5 @@ public:
   std::map<FILEREF, FileEntry*> all_entries;
   std::map<FILEREF, std::vector<FileEntry*>> sub_entries;
   std::map<FILEREF, FileEntry*> recycle;
+  const int max_search = 1000;
 };

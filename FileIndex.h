@@ -36,7 +36,8 @@ public:
 	std::list<FileInfo> Files;
 	std::unordered_map<std::wstring, std::list<post>> DB;
 	FileIndex(USNParser* driver);
-  ~FileIndex();
+  FileIndex(const FileIndex&) = delete;
+  FileIndex& operator=(const FileIndex&) = delete;
 	void InsertFiles(const std::wstring& dir);
 	void InsertFileIndex(FILEREF num, const std::wstring& path);
 	void DeleteFileIndex(const std::wstring& path);

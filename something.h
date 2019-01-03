@@ -48,7 +48,8 @@ private:
   QListWidget* list;
   QStandardItemModel* model;
   HTMLDelegate* delegate;
-  std::vector<char> _drivers = { 'D' };
+  std::vector<char> _drivers = { 'C', 'D' };
+  std::map<char, int> _map { {'C', 0}, {'D', 1} };
   std::vector<USNParser*> drivers;
   std::vector<Monitor*> monitors;
   std::vector<FileIndex*> fileindexs;
