@@ -12,6 +12,7 @@ Searcher::Searcher(std::vector<char>& _drivers) {
     indexs.push_back(new FileIndex(drivers.back()));
   }
 }
+
 void Searcher::parseQuery(std::wstring& query) {
   content_result.clear();
   path_result.clear();
