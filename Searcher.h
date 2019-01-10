@@ -8,7 +8,7 @@
 enum class UpdateType { ADD, REMOVE, CONTENT_CHANGE };
 class Searcher {
 public:
-  Searcher(std::vector<char>& _drivers);
+  Searcher();
   void parseQuery(std::wstring& query);
   void searchPath(std::wstring& path);
   void searchContent(std::wstring& content);
@@ -17,6 +17,7 @@ public:
   bool update(FileEntry* entry, UpdateType type);
   std::wstring addHighLight(std::wstring& path);
   std::vector<std::wstring> recommend() const;
+  std::vector<char> _drivers;
   std::vector<Monitor*> monitors;
   std::vector<USNParser*> drivers;
   std::vector<FileIndex*> indexs;

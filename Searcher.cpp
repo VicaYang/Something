@@ -1,11 +1,16 @@
 ﻿#include "Searcher.h"
 #include "util.h"
+#include <windows.h>
 #include <queue>
 #include <sstream>
 #include <QDebug>
 
-Searcher::Searcher(std::vector<char>& _drivers) {
+Searcher::Searcher() {
   int id = 0;
+  char lpBuffer[100];
+  DWORD test = GetLogicalDriveStrings(100, (LPWSTR)lpBuffer);
+  for (int i = 0; lpBuffer[i] != '\0'; i += 4)
+    _drivers.push_back(lpBuffer[i]);
   for (auto ch : _drivers) {
     drivers.push_back(new USNParser(ch));
     monitors.push_back(new Monitor(id++, drivers.back()->root_handle, drivers.back()->journal));

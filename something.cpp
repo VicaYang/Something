@@ -4,31 +4,29 @@
 #include <QMetaType>
 #include <QHBoxLayout>
 #include <QFileDialog>
-#include "BuildIndexThread.h"
+#include <QMessageBox>
 #include <QDebug>
 #include <QTime>
+#include "BuildIndexThread.h"
+
 
 Something::Something(QWidget *parent) : QMainWindow(parent), ui(new Ui::Something) {
   ui->setupUi(this);
   this->setWindowTitle("Something");
   this->createUI();
-  //this->initEngine();
 }
 
 void Something::createUI() {
   setFixedHeight(600);
   setFixedWidth(800);
   input = new QLineEdit;
-  //searchBtn = new QPushButton;
   table = new QTableView;
   model = new QStandardItemModel;
-  //searchBtn->setText("Search");
   QVBoxLayout *vBoxLayout = new QVBoxLayout;
   QHBoxLayout *hBoxlayout = new QHBoxLayout;
   QWidget *widget = new QWidget;
   QWidget *subwidget = new QWidget;
   hBoxlayout->addWidget(input);
-  //hBoxlayout->addWidget(searchBtn);
   subwidget->setLayout(hBoxlayout);
   vBoxLayout->addWidget(subwidget);
   vBoxLayout->addWidget(table);
@@ -44,7 +42,6 @@ void Something::createUI() {
   table->setModel(model);
   delegate = new HTMLDelegate;
   table->setItemDelegate(delegate);
-  //connect(searchBtn, SIGNAL(released()), this, SLOT(search()));
   qRegisterMetaType<PUSN_RECORD>("Myclass");
   qRegisterMetaType<QVector<int>>("Myclass2");
   qRegisterMetaType<QList<QPersistentModelIndex>>("Myclass3");
@@ -57,6 +54,7 @@ void Something::createUI() {
 
   pProgressBar = new QProgressBar();
   pLabel = new QLabel();
+  pLabel->setText("Building Index...... Please wait for seconds");
   pProgressBar->setRange(0, 100);
   pProgressBar->setValue(0);
   pProgressBar->setFixedWidth(0.4 * width());
@@ -71,14 +69,12 @@ void Something::createUI() {
 void Something::initEngine() {
   QTime timer;
   timer.start();
-  //searchBtn->setEnabled(false);
-  searcher = new Searcher(_drivers);
+  searcher = new Searcher();
   size_t cnt = 0;
   for (auto driver : searcher->drivers) cnt += driver->all_entries.size();
   pLabel->setText(QString("Finish. %1 records %2 ms").arg(cnt).arg(timer.elapsed()));
   pProgressBar->setValue(100);
-  //searchBtn->setEnabled(true);
-  for (int i = 0; i < _drivers.size(); ++i) {
+  for (int i = 0; i < searcher->_drivers.size(); ++i) {
     connect(searcher->monitors[i], SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
     searcher->monitors[i]->start();
   }
@@ -103,7 +99,7 @@ void Something::updateResult() {
   int display_max = 100;
   std::map<char, int> drivers_to_id;
   int id = 0;
-  for (auto ch : _drivers) drivers_to_id.insert({ ch, id++ });
+  for (auto ch : searcher->_drivers) drivers_to_id.insert({ ch, id++ });
   if (!searcher->content_result.empty() && !searcher->path_result.empty()) {
     std::set<FileEntry*> tmp;
     std::set_intersection(searcher->content_result.begin(), searcher->content_result.end(),
@@ -165,9 +161,14 @@ void Something::buildIndexSlot() {
 	QString path = QFileDialog::getExistingDirectory(this, tr("Choose folders"), ".");
   if (path.length() == 0) return;
 	int id = 0;
-	for (id = 0; id < _drivers.size(); ++id) {
-		if (path[0] == _drivers[id]) break;
+	for (id = 0; id < searcher->_drivers.size(); ++id) {
+		if (path[0] == searcher->_drivers[id]) break;
 	}
+  if (id == searcher->_drivers.size()) {
+    QMessageBox messageBox;
+    messageBox.critical(0,"Error","The file has not been indexed before!");
+    return;
+  }
 	std::wstring temp = path.toStdWString();
 	while (true) {
 		auto pos = temp.find(47);

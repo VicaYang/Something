@@ -46,15 +46,10 @@ private slots:
 private:
   Ui::Something *ui;
   QLineEdit* input;
-  //QPushButton* searchBtn;
   QTableView* table;
   QListWidget* list;
   QStandardItemModel* model;
   HTMLDelegate* delegate;
-  std::vector<char> _drivers = { 'C', 'D' };
-  //std::vector<USNParser*> drivers;
-  //std::vector<Monitor*> monitors;
-  //std::vector<FileIndex*> fileindexs;
   Searcher* searcher;
   QMenu* menu;
   QAction* buildIndex;
@@ -62,7 +57,6 @@ private:
   QProgressBar* pProgressBar;
   History history;
   void createUI();
-
 };
 Q_DECLARE_METATYPE(PUSN_RECORD);
 #endif // SOMETHING_H
