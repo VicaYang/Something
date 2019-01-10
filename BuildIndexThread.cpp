@@ -17,6 +17,7 @@ void BuildIndexThread::run()
     emit setValue(100 * idx / all);
     emit setLabel(QString("%1").arg(QString::fromStdWString(file->file_name)));
   }
+  index->Calctfidf();
   emit setValue(100 * idx / all);
   emit setLabel(QString("Finish"));
   emit enableBtn(true);
