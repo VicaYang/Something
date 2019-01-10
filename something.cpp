@@ -59,7 +59,6 @@ void Something::createUI() {
   pProgressBar->setValue(0);
   pProgressBar->setFixedWidth(0.4 * width());
   this->statusBar()->addWidget(pLabel);
-  this->statusBar()->addPermanentWidget(pProgressBar);
   list = new QListWidget(this);
   list->move(18, 68);
   list->resize(input->width(), 17);
@@ -69,11 +68,14 @@ void Something::createUI() {
 void Something::initEngine() {
   QTime timer;
   timer.start();
+  input->setEnabled(false);
   searcher = new Searcher();
   size_t cnt = 0;
   for (auto driver : searcher->drivers) cnt += driver->all_entries.size();
   pLabel->setText(QString("Finish. %1 records %2 ms").arg(cnt).arg(timer.elapsed()));
   pProgressBar->setValue(100);
+  this->statusBar()->addPermanentWidget(pProgressBar);
+  input->setEnabled(true);
   for (int i = 0; i < searcher->_drivers.size(); ++i) {
     connect(searcher->monitors[i], SIGNAL(sendPUSN(int, PUSN_RECORD)), this, SLOT(recvPUSN(int, PUSN_RECORD)), Qt::DirectConnection);
     searcher->monitors[i]->start();
