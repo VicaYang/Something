@@ -10,3 +10,9 @@ It can
 - Monitor the file change. It means when you create/move the file, the change will be record and update immediatelly.
   - Also, if you have built a content index for file A, then the content change will also be detected
 - Guess your input
+
+## Demo
+
+[](https://cloud.tsinghua.edu.cn/f/75092e9ebeac40ccb6d9/)
+
+
